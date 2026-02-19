@@ -9,8 +9,6 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
-from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResult
 
 from .client import AudacApiError, AudacMtxClient
 from .const import (
@@ -47,7 +45,7 @@ def _device_schema(user_input: Mapping[str, Any] | None = None) -> vol.Schema:
             vol.Required(
                 CONF_SOURCE_ID,
                 default=user_input.get(CONF_SOURCE_ID, DEFAULT_SOURCE_ID),
-            ): vol.All(str, vol.Match(r"^[^#|]{1,4}$")),
+            ): str,
             vol.Required(
                 CONF_DEVICE_ADDRESS,
                 default=user_input.get(CONF_DEVICE_ADDRESS, DEFAULT_DEVICE_ADDRESS),
@@ -76,10 +74,20 @@ class AudacConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            source_id = str(user_input.get(CONF_SOURCE_ID, "")).strip()
+            if not source_id or len(source_id) > 4 or "#" in source_id or "|" in source_id:
+                errors["base"] = "invalid_source_id"
+                return self.async_show_form(
+                    step_id="user",
+                    data_schema=_device_schema(user_input),
+                    errors=errors,
+                )
             try:
                 await _can_connect(user_input)
             except AudacApiError:
@@ -118,13 +126,23 @@ class AudacOptionsFlow(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self.config_entry = config_entry
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         errors: dict[str, str] = {}
 
         merged = {**self.config_entry.data, **self.config_entry.options}
 
         if user_input is not None:
             new_data = {**merged, **user_input}
+            source_id = str(new_data.get(CONF_SOURCE_ID, "")).strip()
+            if not source_id or len(source_id) > 4 or "#" in source_id or "|" in source_id:
+                errors["base"] = "invalid_source_id"
+                return self.async_show_form(
+                    step_id="init",
+                    data_schema=_device_schema(new_data),
+                    errors=errors,
+                )
             try:
                 await _can_connect(new_data)
             except AudacApiError:

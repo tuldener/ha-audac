@@ -30,6 +30,7 @@
     },
     "error": {
       "cannot_connect": "Failed to connect to MTX.",
+      "invalid_source_id": "Source ID must be 1 to 4 characters and cannot contain # or |.",
       "unknown": "Unexpected error"
     },
     "abort": {
