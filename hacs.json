@@ -1,0 +1,6 @@
+{
+  "name": "Audac MTX",
+  "render_readme": true,
+  "domains": ["audac"],
+  "homeassistant": "2024.6.0"
+}

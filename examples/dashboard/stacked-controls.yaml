@@ -1,0 +1,32 @@
+type: vertical-stack
+cards:
+  - type: entities
+    title: Audac MTX Zone 1
+    entities:
+      - entity: number.audac_mtx_zone_1_volume_db_attenuation
+      - entity: switch.audac_mtx_zone_1_mute
+      - entity: select.audac_mtx_zone_1_source
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: Save MTX
+        icon: mdi:content-save
+        tap_action:
+          action: call-service
+          service: audac.send_raw_command
+          data:
+            entry_id: YOUR_ENTRY_ID
+            command: SAVE
+            argument: "0"
+      - type: button
+        name: Factory Reset
+        icon: mdi:restore
+        tap_action:
+          action: call-service
+          service: audac.send_raw_command
+          confirmation:
+            text: Wirklich DEF senden?
+          data:
+            entry_id: YOUR_ENTRY_ID
+            command: DEF
+            argument: "0"

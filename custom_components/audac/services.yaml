@@ -1,0 +1,18 @@
+send_raw_command:
+  name: Send raw MTX command
+  description: Send one raw MTX command frame payload.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        text:
+    command:
+      required: true
+      description: e.g. SAVE, DEF, GZI01
+      selector:
+        text:
+    argument:
+      required: false
+      description: defaults to 0
+      selector:
+        text:

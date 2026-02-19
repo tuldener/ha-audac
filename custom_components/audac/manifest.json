@@ -1,0 +1,12 @@
+{
+  "domain": "audac",
+  "name": "Audac MTX",
+  "version": "0.2.0",
+  "documentation": "https://github.com/tuldener/ha-audac",
+  "issue_tracker": "https://github.com/tuldener/ha-audac/issues",
+  "dependencies": [],
+  "codeowners": ["@tuldener"],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "requirements": []
+}

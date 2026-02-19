@@ -1,0 +1,43 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Audac MTX",
+        "description": "Configure an Audac MTX48 / MTX88 device"
+      },
+      "init": {
+        "title": "Audac MTX options",
+        "description": "Adjust MTX connection settings"
+      }
+    },
+    "error": {
+      "cannot_connect": "Connection to the MTX endpoint failed.",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This Audac device is already configured"
+    }
+  },
+  "entity": {
+    "switch": {
+      "mute": {
+        "name": "Mute"
+      }
+    },
+    "number": {
+      "volume": {
+        "name": "Volume"
+      }
+    },
+    "select": {
+      "source": {
+        "name": "Source"
+      }
+    },
+    "sensor": {
+      "firmware": {
+        "name": "Firmware"
+      }
+    }
+  }
+}

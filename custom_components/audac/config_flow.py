@@ -1,0 +1,142 @@
+"""Config flow for Audac MTX integration."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any
+
+import voluptuous as vol
+
+from homeassistant import config_entries
+from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResult
+
+from .client import AudacApiError, AudacMtxClient
+from .const import (
+    CONF_DEVICE_ADDRESS,
+    CONF_MODEL,
+    CONF_SCAN_INTERVAL,
+    CONF_SOURCE_ID,
+    CONF_ZONE_COUNT,
+    DEFAULT_DEVICE_ADDRESS,
+    DEFAULT_PORT,
+    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_SOURCE_ID,
+    DOMAIN,
+    MODEL_MTX48,
+    MODEL_MTX88,
+    MODEL_TO_ZONES,
+)
+
+
+def _device_schema(user_input: Mapping[str, Any] | None = None) -> vol.Schema:
+    user_input = user_input or {}
+
+    return vol.Schema(
+        {
+            vol.Required(CONF_NAME, default=user_input.get(CONF_NAME, "Audac MTX")): str,
+            vol.Required(CONF_HOST, default=user_input.get(CONF_HOST, "")): str,
+            vol.Required(CONF_PORT, default=user_input.get(CONF_PORT, DEFAULT_PORT)): vol.All(
+                int, vol.Range(min=1, max=65535)
+            ),
+            vol.Required(
+                CONF_MODEL,
+                default=user_input.get(CONF_MODEL, MODEL_MTX48),
+            ): vol.In({MODEL_MTX48: "MTX48", MODEL_MTX88: "MTX88"}),
+            vol.Required(
+                CONF_SOURCE_ID,
+                default=user_input.get(CONF_SOURCE_ID, DEFAULT_SOURCE_ID),
+            ): vol.All(str, vol.Match(r"^[^#|]{1,4}$")),
+            vol.Required(
+                CONF_DEVICE_ADDRESS,
+                default=user_input.get(CONF_DEVICE_ADDRESS, DEFAULT_DEVICE_ADDRESS),
+            ): str,
+            vol.Required(
+                CONF_SCAN_INTERVAL,
+                default=user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+            ): vol.All(int, vol.Range(min=2, max=300)),
+        }
+    )
+
+
+async def _can_connect(data: Mapping[str, Any]) -> bool:
+    client = AudacMtxClient(
+        host=data[CONF_HOST],
+        port=data[CONF_PORT],
+        source_id=data[CONF_SOURCE_ID],
+        device_address=data[CONF_DEVICE_ADDRESS],
+    )
+    await client.async_get_state(MODEL_TO_ZONES[data[CONF_MODEL]])
+    return True
+
+
+class AudacConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle Audac config flow."""
+
+    VERSION = 1
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            try:
+                await _can_connect(user_input)
+            except AudacApiError:
+                errors["base"] = "cannot_connect"
+            except Exception:  # noqa: BLE001
+                errors["base"] = "unknown"
+            else:
+                unique_id = (
+                    f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}:"
+                    f"{user_input[CONF_DEVICE_ADDRESS]}"
+                )
+                await self.async_set_unique_id(unique_id)
+                self._abort_if_unique_id_configured()
+                user_input[CONF_ZONE_COUNT] = MODEL_TO_ZONES[user_input[CONF_MODEL]]
+                return self.async_create_entry(
+                    title=user_input[CONF_NAME],
+                    data=user_input,
+                )
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=_device_schema(user_input),
+            errors=errors,
+        )
+
+    @staticmethod
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> "AudacOptionsFlow":
+        return AudacOptionsFlow(config_entry)
+
+
+class AudacOptionsFlow(config_entries.OptionsFlow):
+    """Handle Audac options flow."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self.config_entry = config_entry
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        errors: dict[str, str] = {}
+
+        merged = {**self.config_entry.data, **self.config_entry.options}
+
+        if user_input is not None:
+            new_data = {**merged, **user_input}
+            try:
+                await _can_connect(new_data)
+            except AudacApiError:
+                errors["base"] = "cannot_connect"
+            except Exception:  # noqa: BLE001
+                errors["base"] = "unknown"
+            else:
+                user_input[CONF_ZONE_COUNT] = MODEL_TO_ZONES[new_data[CONF_MODEL]]
+                return self.async_create_entry(title="", data=user_input)
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=_device_schema(merged),
+            errors=errors,
+        )

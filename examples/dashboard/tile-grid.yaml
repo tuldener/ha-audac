@@ -1,0 +1,19 @@
+type: grid
+columns: 2
+square: false
+cards:
+  - type: tile
+    entity: number.audac_mtx_zone_1_volume_db_attenuation
+    name: Zone 1 Volume
+    features:
+      - type: numeric-input
+        style: slider
+  - type: tile
+    entity: switch.audac_mtx_zone_1_mute
+    name: Zone 1 Mute
+  - type: tile
+    entity: select.audac_mtx_zone_1_source
+    name: Zone 1 Source
+  - type: tile
+    entity: sensor.audac_mtx_firmware
+    name: Firmware

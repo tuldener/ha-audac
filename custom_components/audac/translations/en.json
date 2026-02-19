@@ -1,0 +1,61 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Audac MTX",
+        "description": "Configure an Audac MTX48 / MTX88 device",
+        "data": {
+          "name": "Name",
+          "host": "Host/IP",
+          "port": "TCP Port",
+          "model": "Model",
+          "source_id": "Client source id (max 4 chars)",
+          "device_address": "Device address",
+          "scan_interval": "Polling interval (seconds)"
+        }
+      },
+      "init": {
+        "title": "Audac MTX options",
+        "description": "Adjust MTX connection settings",
+        "data": {
+          "name": "Name",
+          "host": "Host/IP",
+          "port": "TCP Port",
+          "model": "Model",
+          "source_id": "Client source id (max 4 chars)",
+          "device_address": "Device address",
+          "scan_interval": "Polling interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to MTX.",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Device already configured"
+    }
+  },
+  "entity": {
+    "switch": {
+      "mute": {
+        "name": "Mute"
+      }
+    },
+    "number": {
+      "volume": {
+        "name": "Volume"
+      }
+    },
+    "select": {
+      "source": {
+        "name": "Source"
+      }
+    },
+    "sensor": {
+      "firmware": {
+        "name": "Firmware"
+      }
+    }
+  }
+}
