@@ -34,7 +34,7 @@ from .const import (
 
 def _device_schema(user_input: Mapping[str, Any] | None = None) -> vol.Schema:
     user_input = user_input or {}
-    model = str(user_input.get(CONF_MODEL, MODEL_MTX48))
+    model = _normalize_model(user_input.get(CONF_MODEL))
     zone_count = MODEL_TO_ZONES.get(model, MODEL_TO_ZONES[MODEL_MTX48])
 
     schema: dict[Any, Any] = {
@@ -45,7 +45,7 @@ def _device_schema(user_input: Mapping[str, Any] | None = None) -> vol.Schema:
         ),
         vol.Required(
             CONF_MODEL,
-            default=user_input.get(CONF_MODEL, MODEL_MTX48),
+            default=model,
         ): vol.In({MODEL_MTX48: "MTX48", MODEL_MTX88: "MTX88"}),
         vol.Required(
             CONF_SOURCE_ID,
@@ -73,6 +73,17 @@ def _device_schema(user_input: Mapping[str, Any] | None = None) -> vol.Schema:
     return vol.Schema(schema)
 
 
+def _normalize_model(value: Any) -> str:
+    raw = str(value or "").strip().lower()
+    if raw in MODEL_TO_ZONES:
+        return raw
+    if raw == "mtx48":
+        return MODEL_MTX48
+    if raw == "mtx88":
+        return MODEL_MTX88
+    return MODEL_MTX48
+
+
 def _validate_custom_labels(data: Mapping[str, Any]) -> str | None:
     for key, value in data.items():
         if key.startswith(CONF_ZONE_NAME_PREFIX) or key.startswith(CONF_LINE_NAME_PREFIX):
@@ -82,13 +93,14 @@ def _validate_custom_labels(data: Mapping[str, Any]) -> str | None:
 
 
 async def _can_connect(data: Mapping[str, Any]) -> bool:
+    model = _normalize_model(data.get(CONF_MODEL))
     client = AudacMtxClient(
         host=data[CONF_HOST],
         port=data[CONF_PORT],
         source_id=data[CONF_SOURCE_ID],
         device_address=data[CONF_DEVICE_ADDRESS],
     )
-    await client.async_get_state(MODEL_TO_ZONES[data[CONF_MODEL]])
+    await client.async_get_state(MODEL_TO_ZONES[model])
     return True
 
 
@@ -140,6 +152,7 @@ class AudacConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_configured()
+                user_input[CONF_MODEL] = _normalize_model(user_input.get(CONF_MODEL))
                 user_input[CONF_ZONE_COUNT] = MODEL_TO_ZONES[user_input[CONF_MODEL]]
                 return self.async_create_entry(
                     title=user_input[CONF_NAME],
@@ -204,7 +217,9 @@ class AudacOptionsFlow(config_entries.OptionsFlow):
                 errors["base"] = "unknown"
             else:
                 self._last_error_detail = "-"
-                user_input[CONF_ZONE_COUNT] = MODEL_TO_ZONES[new_data[CONF_MODEL]]
+                normalized_model = _normalize_model(new_data.get(CONF_MODEL))
+                user_input[CONF_MODEL] = normalized_model
+                user_input[CONF_ZONE_COUNT] = MODEL_TO_ZONES[normalized_model]
                 return self.async_create_entry(title="", data=user_input)
 
         return self.async_show_form(

@@ -17,6 +17,7 @@ from .const import (
     CONF_ZONE_COUNT,
     DEFAULT_INPUT_LABELS,
     DOMAIN,
+    MODEL_MTX48,
     MTX_LINE_IDS,
     MODEL_TO_ZONES,
     PLATFORMS,
@@ -30,7 +31,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
 
     config = {**entry.data, **entry.options}
-    zone_count = config.get(CONF_ZONE_COUNT, MODEL_TO_ZONES[config[CONF_MODEL]])
+    model = str(config.get(CONF_MODEL, "")).strip().lower()
+    if model not in MODEL_TO_ZONES:
+        model = MODEL_MTX48
+    config[CONF_MODEL] = model
+    zone_count = config.get(CONF_ZONE_COUNT, MODEL_TO_ZONES[model])
     zone_names = {
         zone: str(config.get(f"{CONF_ZONE_NAME_PREFIX}{zone}", f"Zone {zone}")).strip()
         or f"Zone {zone}"
