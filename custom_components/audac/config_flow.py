@@ -13,49 +13,72 @@ from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 from .client import AudacApiError, AudacMtxClient
 from .const import (
     CONF_DEVICE_ADDRESS,
+    CONF_LINE_NAME_PREFIX,
     CONF_MODEL,
     CONF_SCAN_INTERVAL,
     CONF_SOURCE_ID,
+    CONF_ZONE_NAME_PREFIX,
     CONF_ZONE_COUNT,
     DEFAULT_DEVICE_ADDRESS,
+    DEFAULT_INPUT_LABELS,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SOURCE_ID,
     DOMAIN,
     MODEL_MTX48,
     MODEL_MTX88,
+    MTX_LINE_IDS,
     MODEL_TO_ZONES,
 )
 
 
 def _device_schema(user_input: Mapping[str, Any] | None = None) -> vol.Schema:
     user_input = user_input or {}
+    model = str(user_input.get(CONF_MODEL, MODEL_MTX48))
+    zone_count = MODEL_TO_ZONES.get(model, MODEL_TO_ZONES[MODEL_MTX48])
 
-    return vol.Schema(
-        {
-            vol.Required(CONF_NAME, default=user_input.get(CONF_NAME, "Audac MTX")): str,
-            vol.Required(CONF_HOST, default=user_input.get(CONF_HOST, "")): str,
-            vol.Required(CONF_PORT, default=user_input.get(CONF_PORT, DEFAULT_PORT)): vol.All(
-                int, vol.Range(min=1, max=65535)
-            ),
-            vol.Required(
-                CONF_MODEL,
-                default=user_input.get(CONF_MODEL, MODEL_MTX48),
-            ): vol.In({MODEL_MTX48: "MTX48", MODEL_MTX88: "MTX88"}),
-            vol.Required(
-                CONF_SOURCE_ID,
-                default=user_input.get(CONF_SOURCE_ID, DEFAULT_SOURCE_ID),
-            ): str,
-            vol.Required(
-                CONF_DEVICE_ADDRESS,
-                default=user_input.get(CONF_DEVICE_ADDRESS, DEFAULT_DEVICE_ADDRESS),
-            ): str,
-            vol.Required(
-                CONF_SCAN_INTERVAL,
-                default=user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
-            ): vol.All(int, vol.Range(min=2, max=300)),
-        }
-    )
+    schema: dict[Any, Any] = {
+        vol.Required(CONF_NAME, default=user_input.get(CONF_NAME, "Audac MTX")): str,
+        vol.Required(CONF_HOST, default=user_input.get(CONF_HOST, "")): str,
+        vol.Required(CONF_PORT, default=user_input.get(CONF_PORT, DEFAULT_PORT)): vol.All(
+            int, vol.Range(min=1, max=65535)
+        ),
+        vol.Required(
+            CONF_MODEL,
+            default=user_input.get(CONF_MODEL, MODEL_MTX48),
+        ): vol.In({MODEL_MTX48: "MTX48", MODEL_MTX88: "MTX88"}),
+        vol.Required(
+            CONF_SOURCE_ID,
+            default=user_input.get(CONF_SOURCE_ID, DEFAULT_SOURCE_ID),
+        ): str,
+        vol.Required(
+            CONF_DEVICE_ADDRESS,
+            default=user_input.get(CONF_DEVICE_ADDRESS, DEFAULT_DEVICE_ADDRESS),
+        ): str,
+        vol.Required(
+            CONF_SCAN_INTERVAL,
+            default=user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        ): vol.All(int, vol.Range(min=2, max=300)),
+    }
+
+    for zone in range(1, zone_count + 1):
+        key = f"{CONF_ZONE_NAME_PREFIX}{zone}"
+        schema[vol.Optional(key, default=user_input.get(key, f"Zone {zone}"))] = str
+
+    for line_id in MTX_LINE_IDS:
+        key = f"{CONF_LINE_NAME_PREFIX}{line_id}"
+        default_label = DEFAULT_INPUT_LABELS.get(line_id, f"Line {line_id}")
+        schema[vol.Optional(key, default=user_input.get(key, default_label))] = str
+
+    return vol.Schema(schema)
+
+
+def _validate_custom_labels(data: Mapping[str, Any]) -> str | None:
+    for key, value in data.items():
+        if key.startswith(CONF_ZONE_NAME_PREFIX) or key.startswith(CONF_LINE_NAME_PREFIX):
+            if not str(value).strip():
+                return key
+    return None
 
 
 async def _can_connect(data: Mapping[str, Any]) -> bool:
@@ -90,6 +113,16 @@ class AudacConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     step_id="user",
                     data_schema=_device_schema(user_input),
                     errors=errors,
+                )
+            invalid_label_key = _validate_custom_labels(user_input)
+            if invalid_label_key:
+                self._last_error_detail = invalid_label_key
+                errors["base"] = "invalid_label"
+                return self.async_show_form(
+                    step_id="user",
+                    data_schema=_device_schema(user_input),
+                    errors=errors,
+                    description_placeholders={"error_detail": self._last_error_detail},
                 )
             try:
                 await _can_connect(user_input)
@@ -150,6 +183,16 @@ class AudacOptionsFlow(config_entries.OptionsFlow):
                     step_id="init",
                     data_schema=_device_schema(new_data),
                     errors=errors,
+                )
+            invalid_label_key = _validate_custom_labels(new_data)
+            if invalid_label_key:
+                self._last_error_detail = invalid_label_key
+                errors["base"] = "invalid_label"
+                return self.async_show_form(
+                    step_id="init",
+                    data_schema=_device_schema(new_data),
+                    errors=errors,
+                    description_placeholders={"error_detail": self._last_error_detail},
                 )
             try:
                 await _can_connect(new_data)

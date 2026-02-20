@@ -23,10 +23,19 @@ async def async_setup_entry(
     coordinator = runtime["coordinator"]
     zone_count = runtime["zone_count"]
     model = runtime["config"][CONF_MODEL]
+    zone_names: dict[int, str] = runtime["zone_names"]
 
     entities: list[SwitchEntity] = []
     for zone in range(1, zone_count + 1):
-        entities.append(AudacZoneMuteSwitch(coordinator, entry.entry_id, model, zone))
+        entities.append(
+            AudacZoneMuteSwitch(
+                coordinator,
+                entry.entry_id,
+                model,
+                zone,
+                zone_names.get(zone, f"Zone {zone}"),
+            )
+        )
 
     async_add_entities(entities)
 
@@ -37,11 +46,13 @@ class AudacZoneMuteSwitch(AudacCoordinatorEntity, SwitchEntity):
     _attr_translation_key = "mute"
     _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(self, coordinator, entry_id: str, model: str, zone: int) -> None:
+    def __init__(
+        self, coordinator, entry_id: str, model: str, zone: int, zone_name: str
+    ) -> None:
         super().__init__(coordinator, entry_id, model)
         self._zone = zone
         self._attr_unique_id = f"{entry_id}_zone_{zone}_mute"
-        self._attr_name = f"Zone {zone} Mute"
+        self._attr_name = f"{zone_name} Mute"
 
     @property
     def is_on(self) -> bool:

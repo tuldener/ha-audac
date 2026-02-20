@@ -9,7 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import CONF_MODEL, DEFAULT_INPUT_LABELS, DOMAIN, STATE_ZONES, ZONE_SOURCE
+from .const import CONF_MODEL, DOMAIN, STATE_ZONES, ZONE_SOURCE
 from .entity import AudacCoordinatorEntity
 
 
@@ -22,10 +22,19 @@ async def async_setup_entry(
     coordinator = runtime["coordinator"]
     zone_count = runtime["zone_count"]
     model = runtime["config"][CONF_MODEL]
+    zone_names: dict[int, str] = runtime["zone_names"]
+    input_labels: dict[str, str] = runtime["input_labels"]
 
     async_add_entities(
         [
-            AudacZoneSourceSelect(coordinator, entry.entry_id, model, zone)
+            AudacZoneSourceSelect(
+                coordinator,
+                entry.entry_id,
+                model,
+                zone,
+                zone_names.get(zone, f"Zone {zone}"),
+                input_labels,
+            )
             for zone in range(1, zone_count + 1)
         ]
     )
@@ -36,12 +45,20 @@ class AudacZoneSourceSelect(AudacCoordinatorEntity, SelectEntity):
 
     _attr_translation_key = "source"
 
-    def __init__(self, coordinator, entry_id: str, model: str, zone: int) -> None:
+    def __init__(
+        self,
+        coordinator,
+        entry_id: str,
+        model: str,
+        zone: int,
+        zone_name: str,
+        input_labels: dict[str, str],
+    ) -> None:
         super().__init__(coordinator, entry_id, model)
         self._zone = zone
         self._attr_unique_id = f"{entry_id}_zone_{zone}_source"
-        self._attr_name = f"Zone {zone} Source"
-        self._id_to_name = DEFAULT_INPUT_LABELS
+        self._attr_name = f"{zone_name} Source"
+        self._id_to_name = input_labels
         self._name_to_id = {v: k for k, v in self._id_to_name.items()}
 
     @property

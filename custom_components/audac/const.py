@@ -18,6 +18,8 @@ CONF_SOURCE_ID = "source_id"
 CONF_DEVICE_ADDRESS = "device_address"
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_ZONE_COUNT = "zone_count"
+CONF_ZONE_NAME_PREFIX = "zone_name_"
+CONF_LINE_NAME_PREFIX = "line_name_"
 
 DEFAULT_PORT = 5001
 DEFAULT_SOURCE_ID = "ha"
@@ -42,6 +44,8 @@ DEFAULT_INPUT_LABELS = {
     "7": "WLI/MWX65",
     "8": "WMI",
 }
+
+MTX_LINE_IDS: tuple[str, ...] = ("1", "2", "3", "4", "5", "6", "7", "8")
 
 STATE_FIRMWARE = "firmware"
 STATE_ZONES = "zones"

@@ -9,11 +9,15 @@ from homeassistant.core import HomeAssistant
 from .client import AudacMtxClient
 from .const import (
     CONF_DEVICE_ADDRESS,
+    CONF_LINE_NAME_PREFIX,
     CONF_MODEL,
     CONF_SCAN_INTERVAL,
     CONF_SOURCE_ID,
+    CONF_ZONE_NAME_PREFIX,
     CONF_ZONE_COUNT,
+    DEFAULT_INPUT_LABELS,
     DOMAIN,
+    MTX_LINE_IDS,
     MODEL_TO_ZONES,
     PLATFORMS,
 )
@@ -27,6 +31,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     config = {**entry.data, **entry.options}
     zone_count = config.get(CONF_ZONE_COUNT, MODEL_TO_ZONES[config[CONF_MODEL]])
+    zone_names = {
+        zone: str(config.get(f"{CONF_ZONE_NAME_PREFIX}{zone}", f"Zone {zone}")).strip()
+        or f"Zone {zone}"
+        for zone in range(1, zone_count + 1)
+    }
+    input_labels = {
+        "0": DEFAULT_INPUT_LABELS["0"],
+        **{
+            line_id: str(
+                config.get(
+                    f"{CONF_LINE_NAME_PREFIX}{line_id}",
+                    DEFAULT_INPUT_LABELS.get(line_id, f"Line {line_id}"),
+                )
+            ).strip()
+            or DEFAULT_INPUT_LABELS.get(line_id, f"Line {line_id}")
+            for line_id in MTX_LINE_IDS
+        },
+    }
 
     client = AudacMtxClient(
         host=config[CONF_HOST],
@@ -49,6 +71,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "coordinator": coordinator,
         "config": config,
         "zone_count": zone_count,
+        "zone_names": zone_names,
+        "input_labels": input_labels,
     }
 
     await async_setup_services(hass)

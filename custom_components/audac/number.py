@@ -22,10 +22,17 @@ async def async_setup_entry(
     coordinator = runtime["coordinator"]
     zone_count = runtime["zone_count"]
     model = runtime["config"][CONF_MODEL]
+    zone_names: dict[int, str] = runtime["zone_names"]
 
     async_add_entities(
         [
-            AudacZoneVolumeNumber(coordinator, entry.entry_id, model, zone)
+            AudacZoneVolumeNumber(
+                coordinator,
+                entry.entry_id,
+                model,
+                zone,
+                zone_names.get(zone, f"Zone {zone}"),
+            )
             for zone in range(1, zone_count + 1)
         ]
     )
@@ -40,11 +47,13 @@ class AudacZoneVolumeNumber(AudacCoordinatorEntity, NumberEntity):
     _attr_native_step = 1
     _attr_mode = "slider"
 
-    def __init__(self, coordinator, entry_id: str, model: str, zone: int) -> None:
+    def __init__(
+        self, coordinator, entry_id: str, model: str, zone: int, zone_name: str
+    ) -> None:
         super().__init__(coordinator, entry_id, model)
         self._zone = zone
         self._attr_unique_id = f"{entry_id}_zone_{zone}_volume"
-        self._attr_name = f"Zone {zone} Volume (dB attenuation)"
+        self._attr_name = f"{zone_name} Volume (dB attenuation)"
 
     @property
     def native_value(self) -> float | None:

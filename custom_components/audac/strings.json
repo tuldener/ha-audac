@@ -12,6 +12,7 @@
     },
     "error": {
       "cannot_connect": "Connection to the MTX endpoint failed.",
+      "invalid_label": "Zone and line labels must not be empty.",
       "invalid_source_id": "Source ID must be 1 to 4 characters and cannot contain # or |.",
       "unknown": "Unexpected error"
     },
