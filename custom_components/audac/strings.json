@@ -4,10 +4,6 @@
       "user": {
         "title": "Audac MTX",
         "description": "Configure an Audac MTX48 / MTX88 device. Last error: {error_detail}"
-      },
-      "init": {
-        "title": "Audac MTX options",
-        "description": "Adjust MTX connection settings. Last error: {error_detail}"
       }
     },
     "error": {
@@ -18,6 +14,20 @@
     },
     "abort": {
       "already_configured": "This Audac device is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Audac MTX options",
+        "description": "Adjust MTX connection settings. Last error: {error_detail}"
+      }
+    },
+    "error": {
+      "cannot_connect": "Connection to the MTX endpoint failed.",
+      "invalid_label": "Zone and line labels must not be empty.",
+      "invalid_source_id": "Source ID must be 1 to 4 characters and cannot contain # or |.",
+      "unknown": "Unexpected error"
     }
   },
   "entity": {

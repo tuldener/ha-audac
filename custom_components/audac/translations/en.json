@@ -29,7 +29,20 @@
           "line_name_7": "Line 7 label",
           "line_name_8": "Line 8 label"
         }
-      },
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to MTX.",
+      "invalid_label": "Zone and line labels must not be empty.",
+      "invalid_source_id": "Source ID must be 1 to 4 characters and cannot contain # or |.",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Device already configured"
+    }
+  },
+  "options": {
+    "step": {
       "init": {
         "title": "Audac MTX options",
         "description": "Adjust MTX connection settings. Last error: {error_detail}",
@@ -65,9 +78,6 @@
       "invalid_label": "Zone and line labels must not be empty.",
       "invalid_source_id": "Source ID must be 1 to 4 characters and cannot contain # or |.",
       "unknown": "Unexpected error"
-    },
-    "abort": {
-      "already_configured": "Device already configured"
     }
   },
   "entity": {
