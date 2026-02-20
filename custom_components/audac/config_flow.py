@@ -98,6 +98,12 @@ def _validate_custom_labels(data: Mapping[str, Any]) -> str | None:
     return None
 
 
+def _entry_merged_data(config_entry: config_entries.ConfigEntry) -> dict[str, Any]:
+    data = config_entry.data if isinstance(config_entry.data, Mapping) else {}
+    options = config_entry.options if isinstance(config_entry.options, Mapping) else {}
+    return {**data, **options}
+
+
 async def _can_connect(data: Mapping[str, Any]) -> bool:
     model = _normalize_model(data.get(CONF_MODEL))
     client = AudacMtxClient(
@@ -198,11 +204,11 @@ class AudacOptionsFlow(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self.config_entry = config_entry
         self._last_error_detail = "-"
-        merged = {**self.config_entry.data, **self.config_entry.options}
+        merged = _entry_merged_data(self.config_entry)
         self._selected_model = _normalize_model(merged.get(CONF_MODEL))
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> dict[str, Any]:
-        merged = {**self.config_entry.data, **self.config_entry.options}
+        merged = _entry_merged_data(self.config_entry)
 
         if user_input is not None:
             self._selected_model = _normalize_model(user_input.get(CONF_MODEL))
@@ -216,7 +222,7 @@ class AudacOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_device(self, user_input: dict[str, Any] | None = None) -> dict[str, Any]:
         errors: dict[str, str] = {}
-        merged = {**self.config_entry.data, **self.config_entry.options}
+        merged = _entry_merged_data(self.config_entry)
 
         if user_input is not None:
             complete_input = {**merged, **user_input, CONF_MODEL: self._selected_model}
