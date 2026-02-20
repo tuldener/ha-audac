@@ -63,3 +63,20 @@ See:
 - `/Users/tguldener/Documents/codex/ha-audac/examples/dashboard/tile-grid.yaml`
 - `/Users/tguldener/Documents/codex/ha-audac/examples/dashboard/stacked-controls.yaml`
 - `/Users/tguldener/Documents/codex/ha-audac/examples/dashboard/mini-audio-panel.yaml`
+
+### Optional Bubble-style
+
+If Bubble Card is installed, you can enable an optional bubble-like style in the custom tile:
+
+```yaml
+type: custom:audac-device-tile
+name: Audac Zone 1
+style_mode: bubble
+mute_entity: switch.audac_zone_1_mute
+volume_entity: number.audac_zone_1_volume_db_attenuation
+source_entity: select.audac_zone_1_source
+```
+
+`style_mode` supports:
+- `default` (standard)
+- `bubble` (bubble-like visual style)

@@ -10,6 +10,7 @@ class AudacDeviceTile extends HTMLElement {
       throw new Error("volume_entity is required");
     }
     this.config = config;
+    this._styleMode = config.style_mode === "bubble" || config.bubble_style === true ? "bubble" : "default";
   }
 
   getCardSize() {
@@ -18,14 +19,49 @@ class AudacDeviceTile extends HTMLElement {
 
   _render() {
     const card = document.createElement("ha-card");
-    card.style.padding = "16px";
+    card.className = this._styleMode === "bubble" ? "audac-bubble" : "audac-default";
     card.innerHTML = `
       <style>
+        ha-card.audac-default {
+          padding: 16px;
+        }
+
+        ha-card.audac-bubble {
+          padding: 16px;
+          border-radius: 26px;
+          border: 1px solid var(--ha-card-border-color, var(--divider-color));
+          background: linear-gradient(
+            165deg,
+            var(--card-background-color) 0%,
+            color-mix(in srgb, var(--card-background-color) 82%, var(--primary-color)) 100%
+          );
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+        }
+
         .audac-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .audac-title { font-weight: 700; font-size: 16px; }
+        .audac-state { opacity: 0.85; font-size: 13px; }
         .audac-row { display: grid; grid-template-columns: 1fr; gap: 8px; }
-        .audac-btn { border: 1px solid var(--divider-color); border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; }
-        .audac-btn.active { background: var(--primary-color); color: var(--text-primary-color); }
+        .audac-btn {
+          border: 1px solid var(--divider-color);
+          border-radius: 14px;
+          padding: 10px;
+          text-align: center;
+          cursor: pointer;
+          transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        .audac-btn:active { transform: scale(0.98); }
+        .audac-btn.active {
+          background: var(--primary-color);
+          color: var(--text-primary-color);
+          border-color: var(--primary-color);
+        }
+
+        ha-card.audac-bubble .audac-btn {
+          border-radius: 999px;
+          background: color-mix(in srgb, var(--card-background-color) 80%, var(--primary-color));
+        }
+
         .audac-slider { width: 100%; margin-top: 12px; }
         .audac-source { margin-top: 12px; width: 100%; }
       </style>
@@ -107,5 +143,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "audac-device-tile",
   name: "Audac Device Tile",
-  description: "Compact tile for Audac MTX zone controls",
+  description: "Compact tile for Audac MTX zone controls (optional bubble style)",
 });

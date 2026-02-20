@@ -1,5 +1,6 @@
 type: custom:audac-device-tile
 name: Audac MTX Zone 1
+style_mode: bubble
 mute_entity: switch.audac_mtx_zone_1_mute
 volume_entity: number.audac_mtx_zone_1_volume_db_attenuation
 source_entity: select.audac_mtx_zone_1_source
