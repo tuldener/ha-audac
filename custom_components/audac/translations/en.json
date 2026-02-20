@@ -51,15 +51,9 @@
     "step": {
       "init": {
         "title": "Audac",
-        "description": "Choose your Audac device type.",
-        "data": {
-          "model": "Audac device"
-        }
-      },
-      "device": {
-        "title": "Audac options",
         "description": "Adjust device configuration. Last error: {error_detail}",
         "data": {
+          "model": "Audac device",
           "name": "Name",
           "host": "Host/IP",
           "port": "TCP Port",

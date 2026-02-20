@@ -24,10 +24,6 @@
     "step": {
       "init": {
         "title": "Audac",
-        "description": "Choose your Audac device type."
-      },
-      "device": {
-        "title": "Audac options",
         "description": "Adjust device configuration. Last error: {error_detail}"
       }
     },
