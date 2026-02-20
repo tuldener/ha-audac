@@ -208,69 +208,78 @@ class AudacOptionsFlow(config_entries.OptionsFlow):
         self._selected_model = _normalize_model(merged.get(CONF_MODEL))
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> dict[str, Any]:
-        errors: dict[str, str] = {}
-        merged = _entry_merged_data(self.config_entry)
-        model = _normalize_model((user_input or merged).get(CONF_MODEL))
-        self._selected_model = model
+        try:
+            errors: dict[str, str] = {}
+            merged = _entry_merged_data(self.config_entry)
+            model = _normalize_model((user_input or merged).get(CONF_MODEL))
+            self._selected_model = model
 
-        if user_input is not None:
-            complete_input = {**merged, **user_input, CONF_MODEL: model}
+            if user_input is not None:
+                complete_input = {**merged, **user_input, CONF_MODEL: model}
 
-            if not _validate_source_id(complete_input):
-                errors["base"] = "invalid_source_id"
-                return self.async_show_form(
-                    step_id="init",
-                    data_schema=vol.Schema(
-                        {
-                            **_model_schema(model).schema,
-                            **_device_schema(model, complete_input).schema,
-                        }
-                    ),
-                    errors=errors,
-                    description_placeholders={"error_detail": self._last_error_detail},
-                )
+                if not _validate_source_id(complete_input):
+                    errors["base"] = "invalid_source_id"
+                    return self.async_show_form(
+                        step_id="init",
+                        data_schema=vol.Schema(
+                            {
+                                **_model_schema(model).schema,
+                                **_device_schema(model, complete_input).schema,
+                            }
+                        ),
+                        errors=errors,
+                        description_placeholders={"error_detail": self._last_error_detail},
+                    )
 
-            invalid_label_key = _validate_custom_labels(complete_input)
-            if invalid_label_key:
-                self._last_error_detail = invalid_label_key
-                errors["base"] = "invalid_label"
-                return self.async_show_form(
-                    step_id="init",
-                    data_schema=vol.Schema(
-                        {
-                            **_model_schema(model).schema,
-                            **_device_schema(model, complete_input).schema,
-                        }
-                    ),
-                    errors=errors,
-                    description_placeholders={"error_detail": self._last_error_detail},
-                )
+                invalid_label_key = _validate_custom_labels(complete_input)
+                if invalid_label_key:
+                    self._last_error_detail = invalid_label_key
+                    errors["base"] = "invalid_label"
+                    return self.async_show_form(
+                        step_id="init",
+                        data_schema=vol.Schema(
+                            {
+                                **_model_schema(model).schema,
+                                **_device_schema(model, complete_input).schema,
+                            }
+                        ),
+                        errors=errors,
+                        description_placeholders={"error_detail": self._last_error_detail},
+                    )
 
-            try:
-                await _can_connect(complete_input)
-            except AudacApiError as err:
-                self._last_error_detail = str(err)
-                errors["base"] = "cannot_connect"
-            except Exception as err:  # noqa: BLE001
-                self._last_error_detail = repr(err)
-                errors["base"] = "unknown"
-            else:
-                self._last_error_detail = "-"
-                result = dict(user_input)
-                result[CONF_MODEL] = model
-                result[CONF_ZONE_COUNT] = MODEL_TO_ZONES[model]
-                return self.async_create_entry(title="", data=result)
+                try:
+                    await _can_connect(complete_input)
+                except AudacApiError as err:
+                    self._last_error_detail = str(err)
+                    errors["base"] = "cannot_connect"
+                except Exception as err:  # noqa: BLE001
+                    self._last_error_detail = repr(err)
+                    errors["base"] = "unknown"
+                else:
+                    self._last_error_detail = "-"
+                    result = dict(user_input)
+                    result[CONF_MODEL] = model
+                    result[CONF_ZONE_COUNT] = MODEL_TO_ZONES[model]
+                    return self.async_create_entry(title="", data=result)
 
-        schema = vol.Schema(
-            {
-                **_model_schema(model).schema,
-                **_device_schema(model, merged).schema,
-            }
-        )
+            schema = vol.Schema(
+                {
+                    **_model_schema(model).schema,
+                    **_device_schema(model, merged).schema,
+                }
+            )
 
-        return self.async_show_form(
-            step_id="init",
-            data_schema=schema,
-            errors=errors,
-            description_placeholders={"error_detail": self._last_error_detail},
-        )
+            return self.async_show_form(
+                step_id="init",
+                data_schema=schema,
+                errors=errors,
+                description_placeholders={"error_detail": self._last_error_detail},
+            )
+        except Exception as err:  # noqa: BLE001
+            self._last_error_detail = repr(err)
+            return self.async_show_form(
+                step_id="init",
+                data_schema=_model_schema(self._selected_model),
+                errors={"base": "unknown"},
+                description_placeholders={"error_detail": self._last_error_detail},
+            )
