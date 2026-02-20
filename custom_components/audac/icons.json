@@ -1,16 +1,24 @@
 {
   "entity": {
     "switch": {
-      "mute": "mdi:volume-mute"
+      "mute": {
+        "default": "mdi:volume-mute"
+      }
     },
     "number": {
-      "volume": "mdi:volume-high"
+      "volume": {
+        "default": "mdi:volume-high"
+      }
     },
     "select": {
-      "source": "mdi:audio-input-rca"
+      "source": {
+        "default": "mdi:audio-input-rca"
+      }
     },
     "sensor": {
-      "firmware": "mdi:chip"
+      "firmware": {
+        "default": "mdi:chip"
+      }
     }
   }
 }
