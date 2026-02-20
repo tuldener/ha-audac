@@ -1,6 +1,6 @@
 {
   "domain": "audac",
-  "name": "Audac MTX",
+  "name": "Audac",
   "codeowners": ["@tuldener"],
   "config_flow": true,
   "dependencies": [],

@@ -2,13 +2,19 @@
   "config": {
     "step": {
       "user": {
-        "title": "Audac MTX",
-        "description": "Configure an Audac MTX48 / MTX88 device. Last error: {error_detail}",
+        "title": "Audac",
+        "description": "Choose your Audac device type.",
+        "data": {
+          "model": "Audac device"
+        }
+      },
+      "device": {
+        "title": "Audac configuration",
+        "description": "Configure the selected device. Last error: {error_detail}",
         "data": {
           "name": "Name",
           "host": "Host/IP",
           "port": "TCP Port",
-          "model": "Model",
           "source_id": "Client source id (max 4 chars)",
           "device_address": "Device address",
           "scan_interval": "Polling interval (seconds)",
@@ -44,13 +50,19 @@
   "options": {
     "step": {
       "init": {
-        "title": "Audac MTX options",
-        "description": "Adjust MTX connection settings. Last error: {error_detail}",
+        "title": "Audac",
+        "description": "Choose your Audac device type.",
+        "data": {
+          "model": "Audac device"
+        }
+      },
+      "device": {
+        "title": "Audac options",
+        "description": "Adjust device configuration. Last error: {error_detail}",
         "data": {
           "name": "Name",
           "host": "Host/IP",
           "port": "TCP Port",
-          "model": "Model",
           "source_id": "Client source id (max 4 chars)",
           "device_address": "Device address",
           "scan_interval": "Polling interval (seconds)",

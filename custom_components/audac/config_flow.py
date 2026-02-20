@@ -32,21 +32,33 @@ from .const import (
 )
 
 
-def _device_schema(user_input: Mapping[str, Any] | None = None) -> vol.Schema:
+def _normalize_model(value: Any) -> str:
+    raw = str(value or "").strip().lower()
+    if raw in MODEL_TO_ZONES:
+        return raw
+    return MODEL_MTX48
+
+
+def _model_schema(default_model: str) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_MODEL, default=default_model): vol.In(
+                {MODEL_MTX48: "MTX48", MODEL_MTX88: "MTX88"}
+            )
+        }
+    )
+
+
+def _device_schema(model: str, user_input: Mapping[str, Any] | None = None) -> vol.Schema:
     user_input = user_input or {}
-    model = _normalize_model(user_input.get(CONF_MODEL))
     zone_count = MODEL_TO_ZONES.get(model, MODEL_TO_ZONES[MODEL_MTX48])
 
     schema: dict[Any, Any] = {
-        vol.Required(CONF_NAME, default=user_input.get(CONF_NAME, "Audac MTX")): str,
+        vol.Required(CONF_NAME, default=user_input.get(CONF_NAME, "Audac")): str,
         vol.Required(CONF_HOST, default=user_input.get(CONF_HOST, "")): str,
         vol.Required(CONF_PORT, default=user_input.get(CONF_PORT, DEFAULT_PORT)): vol.All(
             int, vol.Range(min=1, max=65535)
         ),
-        vol.Required(
-            CONF_MODEL,
-            default=model,
-        ): vol.In({MODEL_MTX48: "MTX48", MODEL_MTX88: "MTX88"}),
         vol.Required(
             CONF_SOURCE_ID,
             default=user_input.get(CONF_SOURCE_ID, DEFAULT_SOURCE_ID),
@@ -73,15 +85,9 @@ def _device_schema(user_input: Mapping[str, Any] | None = None) -> vol.Schema:
     return vol.Schema(schema)
 
 
-def _normalize_model(value: Any) -> str:
-    raw = str(value or "").strip().lower()
-    if raw in MODEL_TO_ZONES:
-        return raw
-    if raw == "mtx48":
-        return MODEL_MTX48
-    if raw == "mtx88":
-        return MODEL_MTX88
-    return MODEL_MTX48
+def _validate_source_id(data: Mapping[str, Any]) -> bool:
+    source_id = str(data.get(CONF_SOURCE_ID, "")).strip()
+    return bool(source_id) and len(source_id) <= 4 and "#" not in source_id and "|" not in source_id
 
 
 def _validate_custom_labels(data: Mapping[str, Any]) -> str | None:
@@ -111,33 +117,47 @@ class AudacConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         self._last_error_detail = "-"
+        self._selected_model = MODEL_MTX48
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> dict[str, Any]:
+        if user_input is not None:
+            self._selected_model = _normalize_model(user_input.get(CONF_MODEL))
+            return await self.async_step_device()
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=_model_schema(self._selected_model),
+            description_placeholders={"error_detail": self._last_error_detail},
+        )
+
+    async def async_step_device(self, user_input: dict[str, Any] | None = None) -> dict[str, Any]:
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            source_id = str(user_input.get(CONF_SOURCE_ID, "")).strip()
-            if not source_id or len(source_id) > 4 or "#" in source_id or "|" in source_id:
+            complete_input = {**user_input, CONF_MODEL: self._selected_model}
+
+            if not _validate_source_id(complete_input):
                 errors["base"] = "invalid_source_id"
                 return self.async_show_form(
-                    step_id="user",
-                    data_schema=_device_schema(user_input),
+                    step_id="device",
+                    data_schema=_device_schema(self._selected_model, user_input),
                     errors=errors,
+                    description_placeholders={"error_detail": self._last_error_detail},
                 )
-            invalid_label_key = _validate_custom_labels(user_input)
+
+            invalid_label_key = _validate_custom_labels(complete_input)
             if invalid_label_key:
                 self._last_error_detail = invalid_label_key
                 errors["base"] = "invalid_label"
                 return self.async_show_form(
-                    step_id="user",
-                    data_schema=_device_schema(user_input),
+                    step_id="device",
+                    data_schema=_device_schema(self._selected_model, user_input),
                     errors=errors,
                     description_placeholders={"error_detail": self._last_error_detail},
                 )
+
             try:
-                await _can_connect(user_input)
+                await _can_connect(complete_input)
             except AudacApiError as err:
                 self._last_error_detail = str(err)
                 errors["base"] = "cannot_connect"
@@ -147,21 +167,20 @@ class AudacConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 self._last_error_detail = "-"
                 unique_id = (
-                    f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}:"
-                    f"{user_input[CONF_DEVICE_ADDRESS]}"
+                    f"{complete_input[CONF_HOST]}:{complete_input[CONF_PORT]}:"
+                    f"{complete_input[CONF_DEVICE_ADDRESS]}"
                 )
                 await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_configured()
-                user_input[CONF_MODEL] = _normalize_model(user_input.get(CONF_MODEL))
-                user_input[CONF_ZONE_COUNT] = MODEL_TO_ZONES[user_input[CONF_MODEL]]
+                complete_input[CONF_ZONE_COUNT] = MODEL_TO_ZONES[self._selected_model]
                 return self.async_create_entry(
-                    title=user_input[CONF_NAME],
-                    data=user_input,
+                    title=complete_input[CONF_NAME],
+                    data=complete_input,
                 )
 
         return self.async_show_form(
-            step_id="user",
-            data_schema=_device_schema(user_input),
+            step_id="device",
+            data_schema=_device_schema(self._selected_model, user_input),
             errors=errors,
             description_placeholders={"error_detail": self._last_error_detail},
         )
@@ -179,36 +198,51 @@ class AudacOptionsFlow(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self.config_entry = config_entry
         self._last_error_detail = "-"
+        merged = {**self.config_entry.data, **self.config_entry.options}
+        self._selected_model = _normalize_model(merged.get(CONF_MODEL))
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
-        errors: dict[str, str] = {}
-
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> dict[str, Any]:
         merged = {**self.config_entry.data, **self.config_entry.options}
 
         if user_input is not None:
-            new_data = {**merged, **user_input}
-            source_id = str(new_data.get(CONF_SOURCE_ID, "")).strip()
-            if not source_id or len(source_id) > 4 or "#" in source_id or "|" in source_id:
+            self._selected_model = _normalize_model(user_input.get(CONF_MODEL))
+            return await self.async_step_device()
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=_model_schema(_normalize_model(merged.get(CONF_MODEL))),
+            description_placeholders={"error_detail": self._last_error_detail},
+        )
+
+    async def async_step_device(self, user_input: dict[str, Any] | None = None) -> dict[str, Any]:
+        errors: dict[str, str] = {}
+        merged = {**self.config_entry.data, **self.config_entry.options}
+
+        if user_input is not None:
+            complete_input = {**merged, **user_input, CONF_MODEL: self._selected_model}
+
+            if not _validate_source_id(complete_input):
                 errors["base"] = "invalid_source_id"
                 return self.async_show_form(
-                    step_id="init",
-                    data_schema=_device_schema(new_data),
+                    step_id="device",
+                    data_schema=_device_schema(self._selected_model, complete_input),
                     errors=errors,
+                    description_placeholders={"error_detail": self._last_error_detail},
                 )
-            invalid_label_key = _validate_custom_labels(new_data)
+
+            invalid_label_key = _validate_custom_labels(complete_input)
             if invalid_label_key:
                 self._last_error_detail = invalid_label_key
                 errors["base"] = "invalid_label"
                 return self.async_show_form(
-                    step_id="init",
-                    data_schema=_device_schema(new_data),
+                    step_id="device",
+                    data_schema=_device_schema(self._selected_model, complete_input),
                     errors=errors,
                     description_placeholders={"error_detail": self._last_error_detail},
                 )
+
             try:
-                await _can_connect(new_data)
+                await _can_connect(complete_input)
             except AudacApiError as err:
                 self._last_error_detail = str(err)
                 errors["base"] = "cannot_connect"
@@ -217,14 +251,14 @@ class AudacOptionsFlow(config_entries.OptionsFlow):
                 errors["base"] = "unknown"
             else:
                 self._last_error_detail = "-"
-                normalized_model = _normalize_model(new_data.get(CONF_MODEL))
-                user_input[CONF_MODEL] = normalized_model
-                user_input[CONF_ZONE_COUNT] = MODEL_TO_ZONES[normalized_model]
-                return self.async_create_entry(title="", data=user_input)
+                result = dict(user_input)
+                result[CONF_MODEL] = self._selected_model
+                result[CONF_ZONE_COUNT] = MODEL_TO_ZONES[self._selected_model]
+                return self.async_create_entry(title="", data=result)
 
         return self.async_show_form(
-            step_id="init",
-            data_schema=_device_schema(merged),
+            step_id="device",
+            data_schema=_device_schema(self._selected_model, merged),
             errors=errors,
             description_placeholders={"error_detail": self._last_error_detail},
         )

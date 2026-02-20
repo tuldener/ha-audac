@@ -2,8 +2,12 @@
   "config": {
     "step": {
       "user": {
-        "title": "Audac MTX",
-        "description": "Configure an Audac MTX48 / MTX88 device. Last error: {error_detail}"
+        "title": "Audac",
+        "description": "Choose your Audac device type."
+      },
+      "device": {
+        "title": "Audac configuration",
+        "description": "Configure the selected device. Last error: {error_detail}"
       }
     },
     "error": {
@@ -19,8 +23,12 @@
   "options": {
     "step": {
       "init": {
-        "title": "Audac MTX options",
-        "description": "Adjust MTX connection settings. Last error: {error_detail}"
+        "title": "Audac",
+        "description": "Choose your Audac device type."
+      },
+      "device": {
+        "title": "Audac options",
+        "description": "Adjust device configuration. Last error: {error_detail}"
       }
     },
     "error": {
