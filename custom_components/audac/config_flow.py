@@ -74,6 +74,9 @@ class AudacConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    def __init__(self) -> None:
+        self._last_error_detail = "-"
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> dict[str, Any]:
@@ -90,11 +93,14 @@ class AudacConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
             try:
                 await _can_connect(user_input)
-            except AudacApiError:
+            except AudacApiError as err:
+                self._last_error_detail = str(err)
                 errors["base"] = "cannot_connect"
-            except Exception:  # noqa: BLE001
+            except Exception as err:  # noqa: BLE001
+                self._last_error_detail = repr(err)
                 errors["base"] = "unknown"
             else:
+                self._last_error_detail = "-"
                 unique_id = (
                     f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}:"
                     f"{user_input[CONF_DEVICE_ADDRESS]}"
@@ -111,6 +117,7 @@ class AudacConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=_device_schema(user_input),
             errors=errors,
+            description_placeholders={"error_detail": self._last_error_detail},
         )
 
     @staticmethod
@@ -125,6 +132,7 @@ class AudacOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self.config_entry = config_entry
+        self._last_error_detail = "-"
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -145,11 +153,14 @@ class AudacOptionsFlow(config_entries.OptionsFlow):
                 )
             try:
                 await _can_connect(new_data)
-            except AudacApiError:
+            except AudacApiError as err:
+                self._last_error_detail = str(err)
                 errors["base"] = "cannot_connect"
-            except Exception:  # noqa: BLE001
+            except Exception as err:  # noqa: BLE001
+                self._last_error_detail = repr(err)
                 errors["base"] = "unknown"
             else:
+                self._last_error_detail = "-"
                 user_input[CONF_ZONE_COUNT] = MODEL_TO_ZONES[new_data[CONF_MODEL]]
                 return self.async_create_entry(title="", data=user_input)
 
@@ -157,4 +168,5 @@ class AudacOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             data_schema=_device_schema(merged),
             errors=errors,
+            description_placeholders={"error_detail": self._last_error_detail},
         )

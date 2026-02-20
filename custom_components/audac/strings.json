@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "Audac MTX",
-        "description": "Configure an Audac MTX48 / MTX88 device"
+        "description": "Configure an Audac MTX48 / MTX88 device. Last error: {error_detail}"
       },
       "init": {
         "title": "Audac MTX options",
-        "description": "Adjust MTX connection settings"
+        "description": "Adjust MTX connection settings. Last error: {error_detail}"
       }
     },
     "error": {
