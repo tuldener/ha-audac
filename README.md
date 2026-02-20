@@ -3,6 +3,8 @@
 Home Assistant HACS repository for Audac MTX devices.
 This is an unofficial Audac implementation and is not affiliated with or endorsed by Audac.
 
+![Audac Unofficial Icon](assets/audac-unofficial-icon.png)
+
 Current device focus:
 - MTX48 (4 zones)
 - MTX88 (8 zones)
