@@ -35,7 +35,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if model not in MODEL_TO_ZONES:
         model = MODEL_MTX48
     config[CONF_MODEL] = model
-    zone_count = config.get(CONF_ZONE_COUNT, MODEL_TO_ZONES[model])
+    zone_count = MODEL_TO_ZONES[model]
     zone_names = {
         zone: str(config.get(f"{CONF_ZONE_NAME_PREFIX}{zone}", f"Zone {zone}")).strip()
         or f"Zone {zone}"
