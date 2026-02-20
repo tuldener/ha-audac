@@ -1,6 +1,7 @@
 # ha-audac
 
 Home Assistant HACS repository for Audac MTX devices.
+This is an unofficial Audac implementation and is not affiliated with or endorsed by Audac.
 
 Current device focus:
 - MTX48 (4 zones)
@@ -60,4 +61,3 @@ See:
 - `/Users/tguldener/Documents/codex/ha-audac/examples/dashboard/tile-grid.yaml`
 - `/Users/tguldener/Documents/codex/ha-audac/examples/dashboard/stacked-controls.yaml`
 - `/Users/tguldener/Documents/codex/ha-audac/examples/dashboard/mini-audio-panel.yaml`
-
