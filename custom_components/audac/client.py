@@ -33,7 +33,7 @@ class _AudacBaseTcpClient:
         port: int,
         source_id: str,
         device_address: str,
-        timeout: float = 5.0,
+        timeout: float = 2.0,
     ) -> None:
         self._host = host
         self._port = port
@@ -75,7 +75,7 @@ class _AudacBaseTcpClient:
         """Send one command over TCP and parse one reply frame."""
         import asyncio
 
-        attempts = 3
+        attempts = 2
         last_error: AudacApiError | None = None
         for attempt in range(1, attempts + 1):
             try:
@@ -346,13 +346,41 @@ class AudacXmpClient(_AudacBaseTcpClient):
             module = configured if configured != XMP_MODULE_AUTO else detected.get(slot, XMP_MODULE_NONE)
             module_label = None
 
+            if module == XMP_MODULE_NONE:
+                slots[slot] = XmpSlotState(
+                    module=module,
+                    module_label=module_label,
+                    gain=None,
+                    player_status=None,
+                    song=None,
+                    station=None,
+                    program=None,
+                    info=None,
+                    pairing=None,
+                )
+                continue
+
             gain = await self._try_int(f"GOG{slot}", f"OG{slot}")
-            status = await self._try_string(f"GPSTAT{slot}", f"PSTAT{slot}")
-            song = await self._try_string(f"GSON{slot}", f"SON{slot}")
-            station = await self._try_string(f"GSTN{slot}", f"STN{slot}")
-            program = await self._try_string(f"GPRGN{slot}", f"PRGN{slot}")
-            info = await self._try_string(f"GBMPI{slot}", f"BMPI{slot}")
-            pairing = await self._try_string(f"GPAIRS{slot}", f"PAIRS{slot}")
+            status: str | None = None
+            song: str | None = None
+            station: str | None = None
+            program: str | None = None
+            info: str | None = None
+            pairing: str | None = None
+
+            if module == XMP_MODULE_BMP42:
+                info = await self._try_string(f"GBMPI{slot}", f"BMPI{slot}")
+                pairing = await self._try_string(f"GPAIRS{slot}", f"PAIRS{slot}")
+            elif module == XMP_MODULE_DMP42:
+                status = await self._try_string(f"GPSTAT{slot}", f"PSTAT{slot}")
+                station = await self._try_string(f"GSTN{slot}", f"STN{slot}")
+                program = await self._try_string(f"GPRGN{slot}", f"PRGN{slot}")
+            else:
+                # NMP40/IMP40/FMP40 or unknown media modules.
+                status = await self._try_string(f"GPSTAT{slot}", f"PSTAT{slot}")
+                song = await self._try_string(f"GSON{slot}", f"SON{slot}")
+                station = await self._try_string(f"GSTN{slot}", f"STN{slot}")
+                program = await self._try_string(f"GPRGN{slot}", f"PRGN{slot}")
 
             slots[slot] = XmpSlotState(
                 module=module,
