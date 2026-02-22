@@ -33,12 +33,16 @@
           "line_name_5": "Line 5 label",
           "line_name_6": "Line 6 label",
           "line_name_7": "Line 7 label",
-          "line_name_8": "Line 8 label"
+          "line_name_8": "Line 8 label",
+          "slot_module_1": "Slot 1 module",
+          "slot_module_2": "Slot 2 module",
+          "slot_module_3": "Slot 3 module",
+          "slot_module_4": "Slot 4 module"
         }
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to MTX.",
+      "cannot_connect": "Failed to connect to device.",
       "invalid_label": "Zone and line labels must not be empty.",
       "invalid_source_id": "Source ID must be 1 to 4 characters and cannot contain # or |.",
       "unknown": "Unexpected error"
@@ -75,12 +79,16 @@
           "line_name_5": "Line 5 label",
           "line_name_6": "Line 6 label",
           "line_name_7": "Line 7 label",
-          "line_name_8": "Line 8 label"
+          "line_name_8": "Line 8 label",
+          "slot_module_1": "Slot 1 module",
+          "slot_module_2": "Slot 2 module",
+          "slot_module_3": "Slot 3 module",
+          "slot_module_4": "Slot 4 module"
         }
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to MTX.",
+      "cannot_connect": "Failed to connect to device.",
       "invalid_label": "Zone and line labels must not be empty.",
       "invalid_source_id": "Source ID must be 1 to 4 characters and cannot contain # or |.",
       "unknown": "Unexpected error"

@@ -5,7 +5,7 @@ from __future__ import annotations
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MODEL_MTX48, MODEL_MTX88
+from .const import DOMAIN, MODEL_MTX48, MODEL_MTX88, MODEL_XMP44
 from .coordinator import AudacDataUpdateCoordinator
 
 
@@ -30,7 +30,14 @@ class AudacCoordinatorEntity(CoordinatorEntity[AudacDataUpdateCoordinator]):
         data = self.coordinator.data or {}
         firmware = data.get("firmware")
 
-        model_name = "MTX48" if self._model == MODEL_MTX48 else "MTX88"
+        if self._model == MODEL_MTX48:
+            model_name = "MTX48"
+        elif self._model == MODEL_MTX88:
+            model_name = "MTX88"
+        elif self._model == MODEL_XMP44:
+            model_name = "XMP44"
+        else:
+            model_name = "Audac"
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry_id)},
             manufacturer="Audac",

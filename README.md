@@ -5,9 +5,10 @@ This is an unofficial Audac implementation and is not affiliated with or endorse
 
 ![Audac Unofficial Icon](assets/audac-unofficial-icon.png)
 
-Current device focus:
+Supported devices:
 - MTX48 (4 zones)
 - MTX88 (8 zones)
+- XMP44 (4 SourceCon slots)
 
 ## Features
 
@@ -17,8 +18,23 @@ Current device focus:
   - `number` -> volume (0..70, attenuation in dB)
   - `switch` -> mute
   - `select` -> input source (0..8 mapped to labels)
+- XMP44 per-slot entities:
+  - `number` -> output gain argument (`SOGx` / `GOGx`)
+  - `sensor` -> module, song, station, program, player status, module info
+  - `switch` -> BMP42 pairing on/off (when slot module is BMP42)
 - Firmware sensor
 - Raw command service (`audac.send_raw_command`) for advanced commands (`SAVE`, `DEF`, `GZI01`, ...)
+
+### XMP44 modules
+
+Configurable per slot (`slot_module_1..4`):
+- `auto` (detect via `GTPS`)
+- `nmp40`
+- `imp40`
+- `rmp40` (FMP40 / voice file player)
+- `dmp42`
+- `bmp42`
+- `none`
 
 ## Install (HACS)
 

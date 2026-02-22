@@ -1,4 +1,4 @@
-"""Config flow for Audac MTX integration."""
+"""Config flow for Audac integration."""
 
 from __future__ import annotations
 
@@ -10,12 +10,13 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 
-from .client import AudacApiError, AudacMtxClient
+from .client import AudacApiError, AudacMtxClient, AudacXmpClient
 from .const import (
     CONF_DEVICE_ADDRESS,
     CONF_LINE_NAME_PREFIX,
     CONF_MODEL,
     CONF_SCAN_INTERVAL,
+    CONF_SLOT_MODULE_PREFIX,
     CONF_SOURCE_ID,
     CONF_ZONE_NAME_PREFIX,
     CONF_ZONE_COUNT,
@@ -24,17 +25,22 @@ from .const import (
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SOURCE_ID,
+    DEFAULT_XMP_DEVICE_ADDRESS,
     DOMAIN,
     MODEL_MTX48,
     MODEL_MTX88,
-    MTX_LINE_IDS,
     MODEL_TO_ZONES,
+    MODEL_XMP44,
+    MTX_LINE_IDS,
+    XMP_MODULE_AUTO,
+    XMP_MODULE_OPTIONS,
+    XMP_SLOT_COUNT,
 )
 
 
 def _normalize_model(value: Any) -> str:
     raw = str(value or "").strip().lower()
-    if raw in MODEL_TO_ZONES:
+    if raw in (MODEL_MTX48, MODEL_MTX88, MODEL_XMP44):
         return raw
     return MODEL_MTX48
 
@@ -43,7 +49,11 @@ def _model_schema(default_model: str) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(CONF_MODEL, default=default_model): vol.In(
-                {MODEL_MTX48: "MTX48", MODEL_MTX88: "MTX88"}
+                {
+                    MODEL_MTX48: "MTX48",
+                    MODEL_MTX88: "MTX88",
+                    MODEL_XMP44: "XMP44",
+                }
             )
         }
     )
@@ -51,7 +61,10 @@ def _model_schema(default_model: str) -> vol.Schema:
 
 def _device_schema(model: str, user_input: Mapping[str, Any] | None = None) -> vol.Schema:
     user_input = user_input or {}
-    zone_count = MODEL_TO_ZONES.get(model, MODEL_TO_ZONES[MODEL_MTX48])
+
+    default_device_address = (
+        DEFAULT_XMP_DEVICE_ADDRESS if model == MODEL_XMP44 else DEFAULT_DEVICE_ADDRESS
+    )
 
     schema: dict[Any, Any] = {
         vol.Required(CONF_NAME, default=user_input.get(CONF_NAME, "Audac")): str,
@@ -65,13 +78,23 @@ def _device_schema(model: str, user_input: Mapping[str, Any] | None = None) -> v
         ): str,
         vol.Required(
             CONF_DEVICE_ADDRESS,
-            default=user_input.get(CONF_DEVICE_ADDRESS, DEFAULT_DEVICE_ADDRESS),
+            default=user_input.get(CONF_DEVICE_ADDRESS, default_device_address),
         ): str,
         vol.Required(
             CONF_SCAN_INTERVAL,
             default=user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
         ): vol.All(int, vol.Range(min=2, max=300)),
     }
+
+    if model == MODEL_XMP44:
+        for slot in range(1, XMP_SLOT_COUNT + 1):
+            key = f"{CONF_SLOT_MODULE_PREFIX}{slot}"
+            schema[vol.Optional(key, default=user_input.get(key, XMP_MODULE_AUTO))] = vol.In(
+                XMP_MODULE_OPTIONS
+            )
+        return vol.Schema(schema)
+
+    zone_count = MODEL_TO_ZONES.get(model, MODEL_TO_ZONES[MODEL_MTX48])
 
     for zone in range(1, zone_count + 1):
         key = f"{CONF_ZONE_NAME_PREFIX}{zone}"
@@ -90,7 +113,10 @@ def _validate_source_id(data: Mapping[str, Any]) -> bool:
     return bool(source_id) and len(source_id) <= 4 and "#" not in source_id and "|" not in source_id
 
 
-def _validate_custom_labels(data: Mapping[str, Any]) -> str | None:
+def _validate_custom_labels(data: Mapping[str, Any], model: str) -> str | None:
+    if model == MODEL_XMP44:
+        return None
+
     for key, value in data.items():
         if key.startswith(CONF_ZONE_NAME_PREFIX) or key.startswith(CONF_LINE_NAME_PREFIX):
             if not str(value).strip():
@@ -106,6 +132,20 @@ def _entry_merged_data(config_entry: config_entries.ConfigEntry) -> dict[str, An
 
 async def _can_connect(data: Mapping[str, Any]) -> bool:
     model = _normalize_model(data.get(CONF_MODEL))
+    if model == MODEL_XMP44:
+        slot_modules = {
+            slot: str(data.get(f"{CONF_SLOT_MODULE_PREFIX}{slot}", XMP_MODULE_AUTO)).strip().lower()
+            for slot in range(1, XMP_SLOT_COUNT + 1)
+        }
+        client = AudacXmpClient(
+            host=data[CONF_HOST],
+            port=data[CONF_PORT],
+            source_id=data[CONF_SOURCE_ID],
+            device_address=data[CONF_DEVICE_ADDRESS],
+        )
+        await client.async_get_state(XMP_SLOT_COUNT, slot_modules)
+        return True
+
     client = AudacMtxClient(
         host=data[CONF_HOST],
         port=data[CONF_PORT],
@@ -133,7 +173,6 @@ class AudacConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=_model_schema(self._selected_model),
-            description_placeholders={"error_detail": self._last_error_detail},
         )
 
     async def async_step_device(self, user_input: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -151,7 +190,7 @@ class AudacConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     description_placeholders={"error_detail": self._last_error_detail},
                 )
 
-            invalid_label_key = _validate_custom_labels(complete_input)
+            invalid_label_key = _validate_custom_labels(complete_input, self._selected_model)
             if invalid_label_key:
                 self._last_error_detail = invalid_label_key
                 errors["base"] = "invalid_label"
@@ -178,7 +217,7 @@ class AudacConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_configured()
-                complete_input[CONF_ZONE_COUNT] = MODEL_TO_ZONES[self._selected_model]
+                complete_input[CONF_ZONE_COUNT] = MODEL_TO_ZONES.get(self._selected_model, 0)
                 return self.async_create_entry(
                     title=complete_input[CONF_NAME],
                     data=complete_input,
@@ -231,7 +270,7 @@ class AudacOptionsFlow(config_entries.OptionsFlow):
                         description_placeholders={"error_detail": self._last_error_detail},
                     )
 
-                invalid_label_key = _validate_custom_labels(complete_input)
+                invalid_label_key = _validate_custom_labels(complete_input, model)
                 if invalid_label_key:
                     self._last_error_detail = invalid_label_key
                     errors["base"] = "invalid_label"
@@ -259,7 +298,7 @@ class AudacOptionsFlow(config_entries.OptionsFlow):
                     self._last_error_detail = "-"
                     result = dict(user_input)
                     result[CONF_MODEL] = model
-                    result[CONF_ZONE_COUNT] = MODEL_TO_ZONES[model]
+                    result[CONF_ZONE_COUNT] = MODEL_TO_ZONES.get(model, 0)
                     return self.async_create_entry(title="", data=result)
 
             schema = vol.Schema(

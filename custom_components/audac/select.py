@@ -1,4 +1,4 @@
-"""Select entities for Audac MTX."""
+"""Select entities for Audac."""
 
 from __future__ import annotations
 
@@ -9,7 +9,13 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import CONF_MODEL, DOMAIN, STATE_ZONES, ZONE_SOURCE
+from .const import (
+    CONF_MODEL,
+    DOMAIN,
+    MODEL_XMP44,
+    STATE_ZONES,
+    ZONE_SOURCE,
+)
 from .entity import AudacCoordinatorEntity
 
 
@@ -19,9 +25,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     runtime: dict[str, Any] = hass.data[DOMAIN][entry.entry_id]
+    model = runtime["config"][CONF_MODEL]
+    if model == MODEL_XMP44:
+        return
+
     coordinator = runtime["coordinator"]
     zone_count = runtime["zone_count"]
-    model = runtime["config"][CONF_MODEL]
     zone_names: dict[int, str] = runtime["zone_names"]
     input_labels: dict[str, str] = runtime["input_labels"]
 
