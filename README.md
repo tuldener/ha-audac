@@ -79,6 +79,41 @@ See:
 - `/Users/tguldener/Documents/codex/ha-audac/examples/dashboard/tile-grid.yaml`
 - `/Users/tguldener/Documents/codex/ha-audac/examples/dashboard/stacked-controls.yaml`
 - `/Users/tguldener/Documents/codex/ha-audac/examples/dashboard/mini-audio-panel.yaml`
+- `/Users/tguldener/Documents/codex/ha-audac/examples/dashboard/fmp-event-button.yaml`
+
+### FMP Event Button (Dashboard only)
+
+Custom card file:
+- `/Users/tguldener/Documents/codex/ha-audac/www/audac-fmp-event-button.js`
+
+Resource (Lovelace):
+
+```yaml
+url: /local/audac-fmp-event-button.js
+type: module
+```
+
+Card example:
+
+```yaml
+type: custom:audac-fmp-event-button
+xmp_entry_id: 01KJ3DBACDQQFC35G5M21QJ6SX
+slot: 4
+event: 1
+label: Klingel Wohnzimmer
+style_mode: default
+```
+
+Options:
+- `xmp_entry_id` (required): Audac config entry id (XMP device)
+- `slot` (required): `1..4`
+- `event` (required): `1..50`
+- `label` (optional): button title
+- `style_mode` (optional): `default` or `bubble`
+
+The card sends:
+- Play -> `SSTRx` with argument `event^1`
+- Stop -> `SSTRx` with argument `event^0`
 
 ### Optional Bubble-style
 
