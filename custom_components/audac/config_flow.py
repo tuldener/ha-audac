@@ -24,7 +24,8 @@ from .const import (
     DEFAULT_INPUT_LABELS,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
-    DEFAULT_SOURCE_ID,
+    DEFAULT_SOURCE_ID_MTX,
+    DEFAULT_SOURCE_ID_XMP,
     DEFAULT_XMP_DEVICE_ADDRESS,
     DOMAIN,
     MODEL_MTX48,
@@ -61,6 +62,7 @@ def _model_schema(default_model: str) -> vol.Schema:
 
 def _device_schema(model: str, user_input: Mapping[str, Any] | None = None) -> vol.Schema:
     user_input = user_input or {}
+    default_source_id = DEFAULT_SOURCE_ID_XMP if model == MODEL_XMP44 else DEFAULT_SOURCE_ID_MTX
 
     default_device_address = (
         DEFAULT_XMP_DEVICE_ADDRESS if model == MODEL_XMP44 else DEFAULT_DEVICE_ADDRESS
@@ -74,7 +76,7 @@ def _device_schema(model: str, user_input: Mapping[str, Any] | None = None) -> v
         ),
         vol.Required(
             CONF_SOURCE_ID,
-            default=user_input.get(CONF_SOURCE_ID, DEFAULT_SOURCE_ID),
+            default=user_input.get(CONF_SOURCE_ID, default_source_id),
         ): str,
         vol.Required(
             CONF_DEVICE_ADDRESS,
