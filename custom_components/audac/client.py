@@ -73,6 +73,31 @@ class _AudacBaseTcpClient:
     ) -> tuple[str, str, str, str, str, str]:
         """Send one command over TCP and parse one reply frame."""
         import asyncio
+
+        attempts = 3
+        last_error: AudacApiError | None = None
+        for attempt in range(1, attempts + 1):
+            try:
+                return await self._send_once(command, argument, accept_commands)
+            except AudacApiError as err:
+                last_error = err
+                if attempt >= attempts:
+                    break
+                # Small backoff to reduce burst timeouts on busy MTX sockets.
+                await asyncio.sleep(0.15 * attempt)
+
+        if last_error is not None:
+            raise last_error
+        raise AudacApiError("TCP communication failed with unknown error")
+
+    async def _send_once(
+        self,
+        command: str,
+        argument: str,
+        accept_commands: set[str] | None = None,
+    ) -> tuple[str, str, str, str, str, str]:
+        """Single TCP attempt for one command."""
+        import asyncio
         import time
 
         payload = f"#|{self._device_address}|{self._source_id}|{command}|{argument}|U|\r\n"
@@ -246,7 +271,7 @@ class AudacMtxClient(_AudacBaseTcpClient):
                     fallback_values.append("1" if bool(value) else "0")
                 else:
                     fallback_values.append(str(value))
-            LOGGER.warning(
+            LOGGER.debug(
                 "%s failed, reusing previous/default %s values for this cycle: %s",
                 command,
                 field,
