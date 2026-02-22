@@ -89,7 +89,7 @@ Custom card file:
 Resource (Lovelace):
 
 ```yaml
-url: /local/audac-fmp-event-button.js
+url: /audac-local/audac-fmp-event-button.js
 type: module
 ```
 
@@ -114,6 +114,9 @@ Options:
 The card sends:
 - Play -> `SSTRx` with argument `event^1`
 - Stop -> `SSTRx` with argument `event^0`
+
+Visual editor:
+- The card includes a GUI editor in Dashboard card configuration.
 
 ### Optional Bubble-style
 

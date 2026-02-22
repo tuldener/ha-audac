@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
@@ -34,6 +36,8 @@ from .coordinator import AudacDataUpdateCoordinator
 from .services import async_setup_services, async_unload_services
 
 LOGGER = logging.getLogger(__name__)
+STATIC_URL_BASE = "/audac-local"
+STATIC_DIR = Path(__file__).resolve().parent / "www"
 
 
 async def _async_forward_platforms(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -44,9 +48,22 @@ async def _async_forward_platforms(hass: HomeAssistant, entry: ConfigEntry) -> N
         LOGGER.exception("Failed to forward Audac platforms for entry %s", entry.entry_id)
 
 
+async def _async_register_static(hass: HomeAssistant) -> None:
+    """Expose custom card assets via a stable local URL."""
+    if hass.data[DOMAIN].get("_static_registered"):
+        return
+    if not hasattr(hass, "http") or hass.http is None:
+        return
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(STATIC_URL_BASE, str(STATIC_DIR), cache_headers=False)]
+    )
+    hass.data[DOMAIN]["_static_registered"] = True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Audac from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+    await _async_register_static(hass)
 
     config = {**entry.data, **entry.options}
     model = str(config.get(CONF_MODEL, "")).strip().lower()
