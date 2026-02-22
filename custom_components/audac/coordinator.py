@@ -77,9 +77,9 @@ class AudacDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     },
                 }
 
-            previous_sources = self._get_previous_sources()
+            previous_zones = self._get_previous_zones()
             state = await self.client.async_get_state(  # type: ignore[arg-type]
-                self.zone_count, previous_sources
+                self.zone_count, previous_zones
             )
         except AudacApiError as err:
             raise UpdateFailed(str(err)) from err
@@ -96,24 +96,25 @@ class AudacDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             },
         }
 
-    def _get_previous_sources(self) -> dict[int, str] | None:
-        """Return last known MTX sources for graceful GRALL fallback."""
+    def _get_previous_zones(self) -> dict[int, dict[str, Any]] | None:
+        """Return last known MTX zone state for graceful polling fallbacks."""
         if not self.data:
             return None
         zones = self.data.get(STATE_ZONES)
         if not isinstance(zones, dict):
             return None
 
-        sources: dict[int, str] = {}
+        previous: dict[int, dict[str, Any]] = {}
         for zone, zone_state in zones.items():
             if not isinstance(zone_state, dict):
-                continue
-            source = zone_state.get("source")
-            if source is None:
                 continue
             try:
                 zone_idx = int(zone)
             except (TypeError, ValueError):
                 continue
-            sources[zone_idx] = str(source)
-        return sources or None
+            previous[zone_idx] = {
+                "volume": zone_state.get("volume", 0),
+                "source": zone_state.get("source", "0"),
+                "mute": zone_state.get("mute", False),
+            }
+        return previous or None

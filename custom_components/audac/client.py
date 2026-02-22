@@ -158,12 +158,35 @@ class AudacMtxClient(_AudacBaseTcpClient):
     """Simple TCP client for MTX48/MTX88."""
 
     async def async_get_state(
-        self, zone_count: int, previous_sources: dict[int, str] | None = None
+        self,
+        zone_count: int,
+        previous_zones: dict[int, dict[str, Any]] | None = None,
     ) -> MtxState:
         """Fetch full state for all zones using GVALL/GRALL/GMALL + GSV."""
-        vol = await self._command_expect("GVALL", "0", "VALL")
-        mute = await self._command_expect("GMALL", "0", "MALL")
-        routing = await self._routing_with_fallback(zone_count, previous_sources)
+        vol = await self._list_with_fallback(
+            command="GVALL",
+            reply_command="VALL",
+            zone_count=zone_count,
+            previous_zones=previous_zones,
+            field="volume",
+            default_value="0",
+        )
+        routing = await self._list_with_fallback(
+            command="GRALL",
+            reply_command="RALL",
+            zone_count=zone_count,
+            previous_zones=previous_zones,
+            field="source",
+            default_value="0",
+        )
+        mute = await self._list_with_fallback(
+            command="GMALL",
+            reply_command="MALL",
+            zone_count=zone_count,
+            previous_zones=previous_zones,
+            field="mute",
+            default_value="0",
+        )
 
         fw: str | None
         try:
@@ -200,23 +223,36 @@ class AudacMtxClient(_AudacBaseTcpClient):
 
         return MtxState(firmware=fw, zones=zones)
 
-    async def _routing_with_fallback(
-        self, zone_count: int, previous_sources: dict[int, str] | None
+    async def _list_with_fallback(
+        self,
+        command: str,
+        reply_command: str,
+        zone_count: int,
+        previous_zones: dict[int, dict[str, Any]] | None,
+        field: str,
+        default_value: str,
     ) -> str:
-        """Read routing; keep coordinator stable when GRALL temporarily times out."""
+        """Read list command with fallback to previous values on temporary failures."""
         try:
-            return await self._command_expect("GRALL", "0", "RALL")
+            return await self._command_expect(command, "0", reply_command)
         except AudacApiError as err:
-            fallback_sources: list[str] = []
+            if not previous_zones:
+                raise
+            fallback_values: list[str] = []
             for zone in range(1, zone_count + 1):
-                if previous_sources and zone in previous_sources:
-                    fallback_sources.append(str(previous_sources[zone]))
+                zone_state = previous_zones.get(zone, {})
+                value = zone_state.get(field, default_value)
+                if field == "mute":
+                    fallback_values.append("1" if bool(value) else "0")
                 else:
-                    fallback_sources.append("0")
+                    fallback_values.append(str(value))
             LOGGER.warning(
-                "GRALL failed, reusing previous/default sources for this cycle: %s", err
+                "%s failed, reusing previous/default %s values for this cycle: %s",
+                command,
+                field,
+                err,
             )
-            return "^".join(fallback_sources)
+            return "^".join(fallback_values)
 
     async def async_set_zone_volume(self, zone: int, volume_db: int) -> None:
         if volume_db < 0 or volume_db > 70:
