@@ -202,15 +202,15 @@ class AudacOptionsFlow(config_entries.OptionsFlow):
     """Handle Audac options flow."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
+        self._config_entry = config_entry
         self._last_error_detail = "-"
-        merged = _entry_merged_data(self.config_entry)
+        merged = _entry_merged_data(self._config_entry)
         self._selected_model = _normalize_model(merged.get(CONF_MODEL))
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> dict[str, Any]:
         try:
             errors: dict[str, str] = {}
-            merged = _entry_merged_data(self.config_entry)
+            merged = _entry_merged_data(self._config_entry)
             model = _normalize_model((user_input or merged).get(CONF_MODEL))
             self._selected_model = model
 
