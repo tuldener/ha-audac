@@ -1,6 +1,6 @@
 # ha-audac
 
-Home Assistant HACS repository for Audac MTX devices.
+Home Assistant HACS repository for Audac devices.
 This is an unofficial Audac implementation and is not affiliated with or endorsed by Audac.
 
 ![Audac Unofficial Icon](assets/audac-unofficial-icon.png)
@@ -40,9 +40,9 @@ Configurable per slot (`slot_module_1..4`):
 
 1. HACS -> Integrations -> 3 dots -> Custom repositories
 2. Add this repository URL as category `Integration`
-3. Install `Audac MTX`
+3. Install `Audac`
 4. Restart Home Assistant
-5. Settings -> Devices & Services -> Add Integration -> `Audac MTX`
+5. Settings -> Devices & Services -> Add Integration -> `Audac`
 
 ## MTX protocol details
 
