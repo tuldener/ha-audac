@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from typing import Any
 
 from .const import (
@@ -14,6 +15,8 @@ from .const import (
     XMP_MODULE_NONE,
     XMP_MODULE_RMP40,
 )
+
+LOGGER = logging.getLogger(__name__)
 
 
 class AudacApiError(Exception):
@@ -154,11 +157,13 @@ class MtxState:
 class AudacMtxClient(_AudacBaseTcpClient):
     """Simple TCP client for MTX48/MTX88."""
 
-    async def async_get_state(self, zone_count: int) -> MtxState:
+    async def async_get_state(
+        self, zone_count: int, previous_sources: dict[int, str] | None = None
+    ) -> MtxState:
         """Fetch full state for all zones using GVALL/GRALL/GMALL + GSV."""
         vol = await self._command_expect("GVALL", "0", "VALL")
-        routing = await self._command_expect("GRALL", "0", "RALL")
         mute = await self._command_expect("GMALL", "0", "MALL")
+        routing = await self._routing_with_fallback(zone_count, previous_sources)
 
         fw: str | None
         try:
@@ -194,6 +199,24 @@ class AudacMtxClient(_AudacBaseTcpClient):
             )
 
         return MtxState(firmware=fw, zones=zones)
+
+    async def _routing_with_fallback(
+        self, zone_count: int, previous_sources: dict[int, str] | None
+    ) -> str:
+        """Read routing; keep coordinator stable when GRALL temporarily times out."""
+        try:
+            return await self._command_expect("GRALL", "0", "RALL")
+        except AudacApiError as err:
+            fallback_sources: list[str] = []
+            for zone in range(1, zone_count + 1):
+                if previous_sources and zone in previous_sources:
+                    fallback_sources.append(str(previous_sources[zone]))
+                else:
+                    fallback_sources.append("0")
+            LOGGER.warning(
+                "GRALL failed, reusing previous/default sources for this cycle: %s", err
+            )
+            return "^".join(fallback_sources)
 
     async def async_set_zone_volume(self, zone: int, volume_db: int) -> None:
         if volume_db < 0 or volume_db > 70:
