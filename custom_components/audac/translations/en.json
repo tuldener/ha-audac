@@ -51,7 +51,7 @@
     "step": {
       "init": {
         "title": "Audac",
-        "description": "Adjust device configuration. Last error: {error_detail}",
+        "description": "Adjust device configuration.",
         "data": {
           "model": "Audac device",
           "name": "Name",
