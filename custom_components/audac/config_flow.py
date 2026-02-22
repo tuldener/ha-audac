@@ -64,10 +64,6 @@ def _device_schema(model: str, user_input: Mapping[str, Any] | None = None) -> v
     user_input = user_input or {}
     default_source_id = DEFAULT_SOURCE_ID_XMP if model == MODEL_XMP44 else DEFAULT_SOURCE_ID_MTX
 
-    default_device_address = (
-        DEFAULT_XMP_DEVICE_ADDRESS if model == MODEL_XMP44 else DEFAULT_DEVICE_ADDRESS
-    )
-
     schema: dict[Any, Any] = {
         vol.Required(CONF_NAME, default=user_input.get(CONF_NAME, "Audac")): str,
         vol.Required(CONF_HOST, default=user_input.get(CONF_HOST, "")): str,
@@ -77,10 +73,6 @@ def _device_schema(model: str, user_input: Mapping[str, Any] | None = None) -> v
         vol.Required(
             CONF_SOURCE_ID,
             default=user_input.get(CONF_SOURCE_ID, default_source_id),
-        ): str,
-        vol.Required(
-            CONF_DEVICE_ADDRESS,
-            default=user_input.get(CONF_DEVICE_ADDRESS, default_device_address),
         ): str,
         vol.Required(
             CONF_SCAN_INTERVAL,
@@ -132,8 +124,16 @@ def _entry_merged_data(config_entry: config_entries.ConfigEntry) -> dict[str, An
     return {**data, **options}
 
 
+def _device_address_for_model(model: str, data: Mapping[str, Any]) -> str:
+    """Resolve device address with model defaults for backward compatibility."""
+    if CONF_DEVICE_ADDRESS in data:
+        return str(data[CONF_DEVICE_ADDRESS])
+    return DEFAULT_XMP_DEVICE_ADDRESS if model == MODEL_XMP44 else DEFAULT_DEVICE_ADDRESS
+
+
 async def _can_connect(data: Mapping[str, Any]) -> bool:
     model = _normalize_model(data.get(CONF_MODEL))
+    device_address = _device_address_for_model(model, data)
     if model == MODEL_XMP44:
         slot_modules = {
             slot: str(data.get(f"{CONF_SLOT_MODULE_PREFIX}{slot}", XMP_MODULE_AUTO)).strip().lower()
@@ -143,7 +143,7 @@ async def _can_connect(data: Mapping[str, Any]) -> bool:
             host=data[CONF_HOST],
             port=data[CONF_PORT],
             source_id=data[CONF_SOURCE_ID],
-            device_address=data[CONF_DEVICE_ADDRESS],
+            device_address=device_address,
         )
         await client.async_get_state(XMP_SLOT_COUNT, slot_modules)
         return True
@@ -152,7 +152,7 @@ async def _can_connect(data: Mapping[str, Any]) -> bool:
         host=data[CONF_HOST],
         port=data[CONF_PORT],
         source_id=data[CONF_SOURCE_ID],
-        device_address=data[CONF_DEVICE_ADDRESS],
+        device_address=device_address,
     )
     await client.async_get_state(MODEL_TO_ZONES[model])
     return True
@@ -215,7 +215,7 @@ class AudacConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._last_error_detail = "-"
                 unique_id = (
                     f"{complete_input[CONF_HOST]}:{complete_input[CONF_PORT]}:"
-                    f"{complete_input[CONF_DEVICE_ADDRESS]}"
+                    f"{self._selected_model}"
                 )
                 await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_configured()

@@ -15,7 +15,9 @@ from .const import (
     CONF_SLOT_MODULE_PREFIX,
     CONF_SOURCE_ID,
     CONF_ZONE_NAME_PREFIX,
+    DEFAULT_DEVICE_ADDRESS,
     DEFAULT_INPUT_LABELS,
+    DEFAULT_XMP_DEVICE_ADDRESS,
     DOMAIN,
     MODEL_MTX48,
     MODEL_TO_ZONES,
@@ -66,20 +68,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         slot: str(config.get(f"{CONF_SLOT_MODULE_PREFIX}{slot}", XMP_MODULE_AUTO)).strip().lower()
         for slot in range(1, slot_count + 1)
     }
+    device_address = str(
+        config.get(
+            CONF_DEVICE_ADDRESS,
+            DEFAULT_XMP_DEVICE_ADDRESS if model == MODEL_XMP44 else DEFAULT_DEVICE_ADDRESS,
+        )
+    )
 
     if model == MODEL_XMP44:
         client = AudacXmpClient(
             host=config[CONF_HOST],
             port=config[CONF_PORT],
             source_id=config[CONF_SOURCE_ID],
-            device_address=config[CONF_DEVICE_ADDRESS],
+            device_address=device_address,
         )
     else:
         client = AudacMtxClient(
             host=config[CONF_HOST],
             port=config[CONF_PORT],
             source_id=config[CONF_SOURCE_ID],
-            device_address=config[CONF_DEVICE_ADDRESS],
+            device_address=device_address,
         )
 
     coordinator = AudacDataUpdateCoordinator(
