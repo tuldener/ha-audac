@@ -53,7 +53,9 @@ class _AudacBaseTcpClient:
         argument: str,
         reply_command: str,
     ) -> str:
-        _, _, _, rep_cmd, rep_arg, _ = await self._send(command, argument)
+        _, _, _, rep_cmd, rep_arg, _ = await self._send(
+            command, argument, accept_commands={reply_command}
+        )
         if rep_cmd != reply_command:
             raise AudacApiError(
                 f"Unexpected reply command '{rep_cmd}' for '{command}', expected '{reply_command}'"
@@ -64,9 +66,11 @@ class _AudacBaseTcpClient:
         self,
         command: str,
         argument: str,
+        accept_commands: set[str] | None = None,
     ) -> tuple[str, str, str, str, str, str]:
         """Send one command over TCP and parse one reply frame."""
         import asyncio
+        import time
 
         payload = f"#|{self._device_address}|{self._source_id}|{command}|{argument}|U|\r\n"
 
@@ -77,7 +81,40 @@ class _AudacBaseTcpClient:
             )
             writer.write(payload.encode("ascii", errors="ignore"))
             await writer.drain()
-            raw = await asyncio.wait_for(reader.readline(), timeout=self._timeout)
+            deadline = time.monotonic() + self._timeout
+            raw = b""
+            while time.monotonic() < deadline:
+                timeout_left = max(0.1, deadline - time.monotonic())
+                raw = await asyncio.wait_for(reader.readline(), timeout=timeout_left)
+                if not raw:
+                    break
+
+                line = raw.decode("ascii", errors="ignore").strip()
+                parts = line.split("|")
+                if len(parts) < 6:
+                    continue
+
+                start, destination, source, rep_command, rep_argument, checksum = parts[:6]
+                rep_command = rep_command.strip()
+                if start != "#":
+                    continue
+
+                if accept_commands is not None and rep_command not in accept_commands:
+                    # Some Audac devices can push unsolicited update frames
+                    # (e.g. VU/RU/MU) before the actual response.
+                    continue
+
+                writer.close()
+                await writer.wait_closed()
+                return (
+                    start,
+                    destination,
+                    source,
+                    rep_command,
+                    rep_argument.strip(),
+                    checksum,
+                )
+
             writer.close()
             await writer.wait_closed()
         except Exception as err:  # noqa: BLE001
@@ -85,18 +122,13 @@ class _AudacBaseTcpClient:
 
         if not raw:
             raise AudacApiError("Empty reply from device")
-
         line = raw.decode("ascii", errors="ignore").strip()
-        parts = line.split("|")
-        if len(parts) < 6:
-            raise AudacApiError(f"Invalid frame: '{line}'")
-
-        start, destination, source, rep_command, rep_argument, checksum = parts[:6]
-
-        if start != "#":
-            raise AudacApiError(f"Invalid start symbol in frame: '{line}'")
-
-        return start, destination, source, rep_command.strip(), rep_argument.strip(), checksum
+        if accept_commands is not None:
+            raise AudacApiError(
+                f"Did not receive expected reply {sorted(accept_commands)} after '{command}'. "
+                f"Last frame: '{line}'"
+            )
+        raise AudacApiError(f"Invalid frame: '{line}'")
 
 
 @dataclass(slots=True)
