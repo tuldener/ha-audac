@@ -118,7 +118,10 @@ class _AudacBaseTcpClient:
             writer.close()
             await writer.wait_closed()
         except Exception as err:  # noqa: BLE001
-            raise AudacApiError(f"TCP communication failed: {err}") from err
+            err_msg = str(err).strip() or repr(err)
+            raise AudacApiError(
+                f"TCP communication failed ({self._host}:{self._port}, command={command}): {err_msg}"
+            ) from err
 
         if not raw:
             raise AudacApiError("Empty reply from device")
