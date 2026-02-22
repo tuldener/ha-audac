@@ -10,10 +10,11 @@ from .const import (
     XMP_MODULE_AUTO,
     XMP_MODULE_BMP42,
     XMP_MODULE_DMP42,
+    XMP_MODULE_FMP40,
     XMP_MODULE_IMP40,
     XMP_MODULE_NMP40,
     XMP_MODULE_NONE,
-    XMP_MODULE_RMP40,
+    normalize_xmp_module,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -329,7 +330,7 @@ class AudacXmpClient(_AudacBaseTcpClient):
     _TYPE_TO_MODULE = {
         1: XMP_MODULE_DMP42,
         4: XMP_MODULE_IMP40,
-        6: XMP_MODULE_RMP40,
+        6: XMP_MODULE_FMP40,
         8: XMP_MODULE_BMP42,
         15: XMP_MODULE_NONE,
         255: XMP_MODULE_NONE,
@@ -341,7 +342,7 @@ class AudacXmpClient(_AudacBaseTcpClient):
 
         slots: dict[int, XmpSlotState] = {}
         for slot in range(1, slot_count + 1):
-            configured = configured_modules.get(slot, XMP_MODULE_AUTO)
+            configured = normalize_xmp_module(configured_modules.get(slot, XMP_MODULE_AUTO))
             module = configured if configured != XMP_MODULE_AUTO else detected.get(slot, XMP_MODULE_NONE)
             module_label = None
 

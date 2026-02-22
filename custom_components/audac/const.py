@@ -44,6 +44,7 @@ XMP_MODULE_AUTO = "auto"
 XMP_MODULE_NONE = "none"
 XMP_MODULE_NMP40 = "nmp40"
 XMP_MODULE_IMP40 = "imp40"
+XMP_MODULE_FMP40 = "fmp40"
 XMP_MODULE_RMP40 = "rmp40"
 XMP_MODULE_DMP42 = "dmp42"
 XMP_MODULE_BMP42 = "bmp42"
@@ -53,10 +54,19 @@ XMP_MODULE_OPTIONS: dict[str, str] = {
     XMP_MODULE_NONE: "No module",
     XMP_MODULE_NMP40: "NMP40 (network streaming)",
     XMP_MODULE_IMP40: "IMP40 (internet audio)",
-    XMP_MODULE_RMP40: "RMP40/FMP40 (voice file player)",
+    XMP_MODULE_FMP40: "FMP40 (voice file player)",
+    XMP_MODULE_RMP40: "RMP40 (legacy alias for FMP40)",
     XMP_MODULE_DMP42: "DMP42 (DAB/FM tuner)",
     XMP_MODULE_BMP42: "BMP42 (Bluetooth)",
 }
+
+
+def normalize_xmp_module(value: str) -> str:
+    """Normalize legacy module aliases to canonical ids."""
+    module = str(value).strip().lower()
+    if module == XMP_MODULE_RMP40:
+        return XMP_MODULE_FMP40
+    return module
 
 DEFAULT_INPUT_LABELS = {
     "0": "None",

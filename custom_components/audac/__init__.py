@@ -26,6 +26,7 @@ from .const import (
     PLATFORMS,
     XMP_MODULE_AUTO,
     XMP_SLOT_COUNT,
+    normalize_xmp_module,
 )
 from .coordinator import AudacDataUpdateCoordinator
 from .services import async_setup_services, async_unload_services
@@ -65,7 +66,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     }
 
     slot_modules = {
-        slot: str(config.get(f"{CONF_SLOT_MODULE_PREFIX}{slot}", XMP_MODULE_AUTO)).strip().lower()
+        slot: normalize_xmp_module(
+            str(config.get(f"{CONF_SLOT_MODULE_PREFIX}{slot}", XMP_MODULE_AUTO)).strip().lower()
+        )
         for slot in range(1, slot_count + 1)
     }
     device_address = str(

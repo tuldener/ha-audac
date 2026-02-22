@@ -36,6 +36,7 @@ from .const import (
     XMP_MODULE_AUTO,
     XMP_MODULE_OPTIONS,
     XMP_SLOT_COUNT,
+    normalize_xmp_module,
 )
 
 
@@ -136,7 +137,9 @@ async def _can_connect(data: Mapping[str, Any]) -> bool:
     device_address = _device_address_for_model(model, data)
     if model == MODEL_XMP44:
         slot_modules = {
-            slot: str(data.get(f"{CONF_SLOT_MODULE_PREFIX}{slot}", XMP_MODULE_AUTO)).strip().lower()
+            slot: normalize_xmp_module(
+                str(data.get(f"{CONF_SLOT_MODULE_PREFIX}{slot}", XMP_MODULE_AUTO)).strip().lower()
+            )
             for slot in range(1, XMP_SLOT_COUNT + 1)
         }
         client = AudacXmpClient(
