@@ -103,7 +103,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         slot_count=slot_count,
         slot_modules=slot_modules,
     )
-    await coordinator.async_config_entry_first_refresh()
+    # Keep HA startup responsive even if the device is slow or temporarily offline.
+    hass.async_create_task(coordinator.async_refresh())
 
     hass.data[DOMAIN][entry.entry_id] = {
         "client": client,
