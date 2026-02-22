@@ -1,0 +1,23 @@
+type: vertical-stack
+cards:
+  - type: tile
+    entity: select.audac_slot_1_trigger_action
+    name: FMP40 Slot 1 Action
+  - type: tile
+    entity: number.audac_slot_1_trigger_contact
+    name: FMP40 Slot 1 Contact (1-15)
+    features:
+      - type: numeric-input
+        style: buttons
+  - type: button
+    entity: button.audac_slot_1_trigger_execute
+    name: FMP40 Slot 1 Trigger
+    show_icon: true
+    tap_action:
+      action: call-service
+      service: button.press
+      target:
+        entity_id: button.audac_slot_1_trigger_execute
+  - type: tile
+    entity: sensor.audac_slot_1_trigger_description
+    name: FMP40 Slot 1 Description

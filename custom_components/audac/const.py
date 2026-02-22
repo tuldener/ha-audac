@@ -11,6 +11,7 @@ PLATFORMS: list[Platform] = [
     Platform.NUMBER,
     Platform.SELECT,
     Platform.SENSOR,
+    Platform.BUTTON,
 ]
 
 CONF_MODEL = "model"
@@ -99,6 +100,15 @@ XMP_SLOT_STATION = "station"
 XMP_SLOT_PROGRAM = "program"
 XMP_SLOT_INFO = "info"
 XMP_SLOT_PAIRING = "pairing"
+
+FMP_TRIGGER_MIN = 1
+FMP_TRIGGER_MAX = 15
+FMP_TRIGGER_ACTION_START = "start"
+FMP_TRIGGER_ACTION_STOP = "stop"
+FMP_TRIGGER_ACTION_OPTIONS: tuple[str, str] = (
+    FMP_TRIGGER_ACTION_START,
+    FMP_TRIGGER_ACTION_STOP,
+)
 
 SERVICE_SEND_RAW_COMMAND = "send_raw_command"
 ATTR_COMMAND = "command"

@@ -12,6 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import (
     CONF_MODEL,
     DOMAIN,
+    FMP_TRIGGER_ACTION_OPTIONS,
     MODEL_XMP44,
     STATE_ZONES,
     ZONE_SOURCE,
@@ -26,10 +27,17 @@ async def async_setup_entry(
 ) -> None:
     runtime: dict[str, Any] = hass.data[DOMAIN][entry.entry_id]
     model = runtime["config"][CONF_MODEL]
+    coordinator = runtime["coordinator"]
     if model == MODEL_XMP44:
+        slot_count = runtime["slot_count"]
+        async_add_entities(
+            [
+                AudacXmpFmpTriggerActionSelect(coordinator, entry.entry_id, model, slot)
+                for slot in range(1, slot_count + 1)
+            ]
+        )
         return
 
-    coordinator = runtime["coordinator"]
     zone_count = runtime["zone_count"]
     zone_names: dict[int, str] = runtime["zone_names"]
     input_labels: dict[str, str] = runtime["input_labels"]
@@ -91,3 +99,28 @@ class AudacZoneSourceSelect(AudacCoordinatorEntity, SelectEntity):
             raise ValueError(f"Unsupported source option: {option}")
         await self.coordinator.client.async_set_zone_source(self._zone, source_id)
         await self.coordinator.async_request_refresh()
+
+
+class AudacXmpFmpTriggerActionSelect(AudacCoordinatorEntity, SelectEntity):
+    """FMP40 trigger action select (start/stop)."""
+
+    def __init__(self, coordinator, entry_id: str, model: str, slot: int) -> None:
+        super().__init__(coordinator, entry_id, model)
+        self._slot = slot
+        self._attr_unique_id = f"{entry_id}_slot_{slot}_fmp_trigger_action"
+        self._attr_name = f"Slot {slot} Trigger Action"
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.is_fmp_slot(self._slot)
+
+    @property
+    def options(self) -> list[str]:
+        return list(FMP_TRIGGER_ACTION_OPTIONS)
+
+    @property
+    def current_option(self) -> str | None:
+        return self.coordinator.get_fmp_trigger_action(self._slot)
+
+    async def async_select_option(self, option: str) -> None:
+        self.coordinator.set_fmp_trigger_action(self._slot, option)

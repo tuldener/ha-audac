@@ -46,6 +46,7 @@ async def async_setup_entry(
                     AudacXmpSlotProgramSensor(coordinator, entry.entry_id, model, slot),
                     AudacXmpSlotStatusSensor(coordinator, entry.entry_id, model, slot),
                     AudacXmpSlotInfoSensor(coordinator, entry.entry_id, model, slot),
+                    AudacXmpFmpTriggerDescriptionSensor(coordinator, entry.entry_id, model, slot),
                 ]
             )
         async_add_entities(entities)
@@ -146,3 +147,20 @@ class AudacXmpSlotInfoSensor(_AudacXmpSlotSensor):
     @property
     def native_value(self) -> str | None:
         return self._slot_data().get(XMP_SLOT_INFO)
+
+
+class AudacXmpFmpTriggerDescriptionSensor(_AudacXmpSlotSensor):
+    """Last FMP40 trigger feedback text."""
+
+    def __init__(self, coordinator, entry_id: str, model: str, slot: int) -> None:
+        super().__init__(coordinator, entry_id, model, slot)
+        self._attr_unique_id = f"{entry_id}_slot_{slot}_fmp_trigger_description"
+        self._attr_name = f"Slot {slot} Trigger Description"
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.is_fmp_slot(self._slot)
+
+    @property
+    def native_value(self) -> str | None:
+        return self.coordinator.get_fmp_trigger_description(self._slot)

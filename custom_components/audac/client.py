@@ -374,6 +374,12 @@ class AudacXmpClient(_AudacBaseTcpClient):
     async def async_set_bmp_pairing(self, slot: int, enabled: bool) -> None:
         await self._command_expect(f"SPAIR{slot}", "1" if enabled else "0", f"SPAIR{slot}")
 
+    async def async_set_slot_trigger(self, slot: int, trigger_number: int, start: bool) -> str:
+        if trigger_number < 1 or trigger_number > 15:
+            raise AudacApiError("Trigger number must be in range 1..15")
+        argument = f"{int(trigger_number)}^{1 if start else 0}"
+        return await self._command_expect(f"SSTR{slot}", argument, f"SSTR{slot}")
+
     def _parse_tps(self, raw: str, slot_count: int) -> dict[int, str]:
         parts = [p.strip() for p in raw.split("^") if p.strip()]
         result: dict[int, str] = {}
