@@ -20,11 +20,7 @@ Supported devices:
   - `select` -> input source (0..8 mapped to labels)
 - XMP44 per-slot entities:
   - `number` -> output gain argument (`SOGx` / `GOGx`)
-  - `number` -> FMP40 trigger contact (`1..15`)
-  - `select` -> FMP40 trigger action (`start` / `stop`)
-  - `button` -> FMP40 trigger execute (`SSTRx`)
   - `sensor` -> module, song, station, program, player status, module info
-  - `sensor` -> FMP40 trigger description (last trigger feedback text)
   - `switch` -> BMP42 pairing on/off (when slot module is BMP42)
 - Firmware sensor
 - Raw command service (`audac.send_raw_command`) for advanced commands (`SAVE`, `DEF`, `GZI01`, ...)
@@ -35,8 +31,7 @@ Configurable per slot (`slot_module_1..4`):
 - `auto` (detect via `GTPS`)
 - `nmp40`
 - `imp40`
-- `fmp40` (voice file player)
-- `rmp40` (legacy alias, internally treated as `fmp40`)
+- `rmp40` (FMP40 / voice file player)
 - `dmp42`
 - `bmp42`
 - `none`
@@ -84,7 +79,6 @@ See:
 - `/Users/tguldener/Documents/codex/ha-audac/examples/dashboard/tile-grid.yaml`
 - `/Users/tguldener/Documents/codex/ha-audac/examples/dashboard/stacked-controls.yaml`
 - `/Users/tguldener/Documents/codex/ha-audac/examples/dashboard/mini-audio-panel.yaml`
-- `/Users/tguldener/Documents/codex/ha-audac/examples/dashboard/xmp-fmp-trigger.yaml`
 
 ### Optional Bubble-style
 

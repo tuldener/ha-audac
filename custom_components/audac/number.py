@@ -12,8 +12,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import (
     CONF_MODEL,
     DOMAIN,
-    FMP_TRIGGER_MAX,
-    FMP_TRIGGER_MIN,
     MODEL_XMP44,
     STATE_XMP_SLOTS,
     STATE_ZONES,
@@ -34,11 +32,12 @@ async def async_setup_entry(
 
     if model == MODEL_XMP44:
         slot_count = runtime["slot_count"]
-        entities: list[NumberEntity] = []
-        for slot in range(1, slot_count + 1):
-            entities.append(AudacXmpSlotGainNumber(coordinator, entry.entry_id, model, slot))
-            entities.append(AudacXmpFmpTriggerContactNumber(coordinator, entry.entry_id, model, slot))
-        async_add_entities(entities)
+        async_add_entities(
+            [
+                AudacXmpSlotGainNumber(coordinator, entry.entry_id, model, slot)
+                for slot in range(1, slot_count + 1)
+            ]
+        )
         return
 
     zone_count = runtime["zone_count"]
@@ -122,29 +121,3 @@ class AudacXmpSlotGainNumber(AudacCoordinatorEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         await self.coordinator.client.async_set_slot_gain(self._slot, int(round(value)))
         await self.coordinator.async_request_refresh()
-
-
-class AudacXmpFmpTriggerContactNumber(AudacCoordinatorEntity, NumberEntity):
-    """FMP40 trigger contact number (1..15)."""
-
-    _attr_native_min_value = FMP_TRIGGER_MIN
-    _attr_native_max_value = FMP_TRIGGER_MAX
-    _attr_native_step = 1
-    _attr_mode = "box"
-
-    def __init__(self, coordinator, entry_id: str, model: str, slot: int) -> None:
-        super().__init__(coordinator, entry_id, model)
-        self._slot = slot
-        self._attr_unique_id = f"{entry_id}_slot_{slot}_fmp_trigger_contact"
-        self._attr_name = f"Slot {slot} Trigger Contact"
-
-    @property
-    def available(self) -> bool:
-        return self.coordinator.is_fmp_slot(self._slot)
-
-    @property
-    def native_value(self) -> float | None:
-        return float(self.coordinator.get_fmp_trigger_contact(self._slot))
-
-    async def async_set_native_value(self, value: float) -> None:
-        self.coordinator.set_fmp_trigger_contact(self._slot, int(round(value)))
