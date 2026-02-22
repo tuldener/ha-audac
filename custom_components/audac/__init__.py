@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
@@ -30,6 +32,16 @@ from .const import (
 )
 from .coordinator import AudacDataUpdateCoordinator
 from .services import async_setup_services, async_unload_services
+
+LOGGER = logging.getLogger(__name__)
+
+
+async def _async_forward_platforms(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Forward platforms in background to avoid blocking startup."""
+    try:
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    except Exception:  # noqa: BLE001
+        LOGGER.exception("Failed to forward Audac platforms for entry %s", entry.entry_id)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -119,7 +131,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     }
 
     await async_setup_services(hass)
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    hass.async_create_task(_async_forward_platforms(hass, entry))
     return True
 
 
