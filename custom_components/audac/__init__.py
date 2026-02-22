@@ -103,7 +103,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         slot_count=slot_count,
         slot_modules=slot_modules,
     )
-    await coordinator.async_config_entry_first_refresh()
+    # Do not block Home Assistant startup on a slow/unreachable device.
+    # Entities will be created and become available once polling succeeds.
+    hass.async_create_task(coordinator.async_refresh())
 
     hass.data[DOMAIN][entry.entry_id] = {
         "client": client,
