@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audac MTX Card – Preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      transition: background 0.3s ease;
+    }
+
+    body.dark {
+      background: #111318;
+      color: #e4e6eb;
+    }
+
+    body.light {
+      background: #f0f2f5;
+      color: #1a1c20;
+    }
+
+    .preview-header {
+      text-align: center;
+      margin-bottom: 32px;
+      max-width: 500px;
+    }
+
+    .preview-header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .preview-header p {
+      font-size: 14px;
+      opacity: 0.6;
+      line-height: 1.5;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      z-index: 100;
+      transition: all 0.3s ease;
+    }
+
+    body.dark .theme-toggle {
+      background: rgba(255,255,255,0.08);
+      color: #e4e6eb;
+    }
+
+    body.light .theme-toggle {
+      background: rgba(0,0,0,0.06);
+      color: #1a1c20;
+    }
+
+    .card-container {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 16px;
+    }
+
+    body.dark .badge {
+      background: rgba(124, 107, 240, 0.15);
+      color: #7c6bf0;
+    }
+
+    body.light .badge {
+      background: rgba(124, 107, 240, 0.1);
+      color: #7c6bf0;
+    }
+  </style>
+</head>
+<body class="dark">
+  <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">🌙</button>
+
+  <div class="preview-header">
+    <span class="badge">HACS Dashboard Card</span>
+    <h1>ha-audac-mtx</h1>
+    <p>Custom Lovelace Card für Home Assistant zur Steuerung von Audac MTX Audio-Matrizen. Design inspiriert von Bubble Card.</p>
+  </div>
+
+  <div class="card-container">
+    <audac-mtx-card id="preview-card"></audac-mtx-card>
+  </div>
+
+  <script src="/audac-mtx-card.js"></script>
+  <script>
+    const mockSources = ["Off", "Mic 1", "Mic 2", "Line 3", "Line 4", "Line 5", "Line 6", "WLI/MWX65", "WMI"];
+
+    const mockHass = {
+      states: {
+        "media_player.audac_mtx_zone_1": {
+          state: "on",
+          entity_id: "media_player.audac_mtx_zone_1",
+          attributes: {
+            friendly_name: "Empfangsbereich",
+            volume_level: 0.65,
+            is_volume_muted: false,
+            source: "Line 3",
+            source_list: mockSources,
+            bass: 2,
+            treble: 0,
+          },
+        },
+        "media_player.audac_mtx_zone_2": {
+          state: "on",
+          entity_id: "media_player.audac_mtx_zone_2",
+          attributes: {
+            friendly_name: "Konferenzraum",
+            volume_level: 0.42,
+            is_volume_muted: false,
+            source: "Mic 1",
+            source_list: mockSources,
+            bass: 0,
+            treble: 4,
+          },
+        },
+        "media_player.audac_mtx_zone_3": {
+          state: "on",
+          entity_id: "media_player.audac_mtx_zone_3",
+          attributes: {
+            friendly_name: "Restaurant",
+            volume_level: 0.3,
+            is_volume_muted: true,
+            source: "Line 5",
+            source_list: mockSources,
+            bass: -4,
+            treble: 2,
+          },
+        },
+        "media_player.audac_mtx_zone_4": {
+          state: "on",
+          entity_id: "media_player.audac_mtx_zone_4",
+          attributes: {
+            friendly_name: "Terrasse",
+            volume_level: 0.78,
+            is_volume_muted: false,
+            source: "Line 4",
+            source_list: mockSources,
+            bass: 6,
+            treble: -2,
+          },
+        },
+        "media_player.audac_mtx_zone_5": {
+          state: "off",
+          entity_id: "media_player.audac_mtx_zone_5",
+          attributes: {
+            friendly_name: "Lager",
+            volume_level: 0,
+            is_volume_muted: false,
+            source: "Off",
+            source_list: mockSources,
+            bass: 0,
+            treble: 0,
+          },
+        },
+      },
+      callService: async (domain, service, data) => {
+        console.log(`[Mock] ${domain}.${service}`, data);
+        const entityId = data.entity_id;
+        const entity = mockHass.states[entityId];
+        if (!entity) return;
+
+        if (service === "volume_set") {
+          entity.attributes.volume_level = data.volume_level;
+        } else if (service === "volume_mute") {
+          entity.attributes.is_volume_muted = data.is_volume_muted;
+        } else if (service === "select_source") {
+          entity.attributes.source = data.source;
+        }
+
+        card.hass = mockHass;
+      },
+    };
+
+    const card = document.getElementById("preview-card");
+
+    card.setConfig({
+      title: "Audac MTX",
+      zones: [
+        "media_player.audac_mtx_zone_1",
+        "media_player.audac_mtx_zone_2",
+        "media_player.audac_mtx_zone_3",
+        "media_player.audac_mtx_zone_4",
+        "media_player.audac_mtx_zone_5",
+      ],
+      show_bass_treble: true,
+      show_source: true,
+      theme: "dark",
+    });
+
+    card.hass = mockHass;
+
+    function toggleTheme() {
+      const body = document.body;
+      const btn = document.querySelector(".theme-toggle");
+
+      if (body.classList.contains("dark")) {
+        body.classList.replace("dark", "light");
+        btn.textContent = "☀️";
+        card.setConfig({ ...card._config, theme: "light" });
+      } else {
+        body.classList.replace("light", "dark");
+        btn.textContent = "🌙";
+        card.setConfig({ ...card._config, theme: "dark" });
+      }
+      card.hass = mockHass;
+    }
+  </script>
+</body>
+</html>

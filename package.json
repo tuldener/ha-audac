@@ -1,0 +1,12 @@
+{
+  "name": "ha-audac-mtx",
+  "version": "1.0.0",
+  "description": "HACS Dashboard Card for Audac MTX audio matrix control in Home Assistant",
+  "main": "src/audac-mtx-card.js",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "cp src/audac-mtx-card.js dist/audac-mtx-card.js"
+  },
+  "keywords": ["home-assistant", "hacs", "audac", "mtx", "lovelace", "dashboard"],
+  "license": "MIT"
+}

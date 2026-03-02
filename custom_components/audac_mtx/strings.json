@@ -1,0 +1,19 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Audac MTX Setup",
+        "description": "Enter the connection details for your Audac MTX device.",
+        "data": {
+          "host": "Host / IP Address",
+          "port": "Port",
+          "zones": "Number of Zones",
+          "name": "Device Name"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to the MTX device. Please check the IP address and port."
+    }
+  }
+}
