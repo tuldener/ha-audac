@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.const import Platform
@@ -49,15 +50,26 @@ async def _register_card(hass: HomeAssistant) -> None:
         _LOGGER.warning("Audac MTX www directory not found at %s", www_dir)
         return
 
-    hass.http.register_static_path(
-        CARD_URL_PATH,
-        str(www_dir / CARD_FILENAME),
-        cache_headers=False,
+    await hass.http.async_register_static_paths(
+        [
+            StaticPathConfig(
+                CARD_URL_PATH,
+                str(www_dir / CARD_FILENAME),
+                cache_headers=False,
+            )
+        ]
     )
 
-    from homeassistant.components.lovelace.resources import (
-        ResourceStorageCollection,
-    )
+    try:
+        from homeassistant.components.lovelace.resources import (
+            ResourceStorageCollection,
+        )
+    except ImportError:
+        _LOGGER.info(
+            "Lovelace resources module not available. Add the card resource manually: %s",
+            CARD_URL_PATH,
+        )
+        return
 
     if hass.data.get("lovelace_resources"):
         resources: ResourceStorageCollection = hass.data["lovelace_resources"]
