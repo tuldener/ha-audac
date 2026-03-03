@@ -35,7 +35,7 @@ Custom Home Assistant Integration und Lovelace Dashboard Card zur Steuerung von 
 
 1. Öffne HACS in Home Assistant
 2. Gehe zu **Benutzerdefinierte Repositories** (drei Punkte oben rechts)
-3. Füge die Repository-URL hinzu und wähle Kategorie **Integration**
+3. Füge `https://github.com/tuldener/Audac-Mtx-Control` hinzu und wähle Kategorie **Integration**
 4. Suche nach **Audac MTX** und installiere es
 5. Starte Home Assistant neu
 
@@ -177,10 +177,10 @@ MIT License – siehe [LICENSE](LICENSE)
 
 ## Mitwirken
 
-Beiträge sind willkommen! Bitte erstelle einen Fork, einen Feature-Branch und einen Merge Request.
+Beiträge sind willkommen! Bitte erstelle einen Fork, einen Feature-Branch und einen Pull Request.
 
 ```bash
-git clone https://gitlab.com/tuldener/Audac-Mtx-Control.git
+git clone https://github.com/tuldener/Audac-Mtx-Control.git
 git checkout -b feature/mein-feature
 # Änderungen vornehmen
 git commit -m "Beschreibung der Änderung"
