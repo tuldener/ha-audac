@@ -1,5 +1,6 @@
 {
-  "name": "Audac MTX",
+  "name": "Audac MTX Card",
   "render_readme": true,
+  "filename": "audac-mtx-card.js",
   "homeassistant": "2023.6.0"
 }

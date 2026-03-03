@@ -105,8 +105,8 @@
 
   <div class="preview-header">
     <span class="badge">HACS Dashboard Card</span>
-    <h1>ha-audac-mtx</h1>
-    <p>Custom Lovelace Card für Home Assistant zur Steuerung von Audac MTX Audio-Matrizen. Design inspiriert von Bubble Card.</p>
+    <h1>Audac MTX Card</h1>
+    <p>Custom Lovelace Card für Home Assistant zur Steuerung von Audac MTX Audio-Matrizen. Arbeitet mit der ha-audac Integration.</p>
   </div>
 
   <div class="card-container">
@@ -115,74 +115,109 @@
 
   <script src="/audac-mtx-card.js"></script>
   <script>
-    const mockSources = ["Off", "Mic 1", "Mic 2", "Line 3", "Line 4", "Line 5", "Line 6", "WLI/MWX65", "WMI"];
+    const sourceOptions = ["None", "Mic 1", "Mic 2", "Line 3", "Line 4", "Line 5", "Line 6", "WLI/MWX65", "WMI"];
 
     const mockHass = {
       states: {
-        "media_player.audac_mtx_zone_1": {
-          state: "on",
-          entity_id: "media_player.audac_mtx_zone_1",
+        "number.audac_zone_1_volume": {
+          state: "45",
+          entity_id: "number.audac_zone_1_volume",
           attributes: {
-            friendly_name: "Empfangsbereich",
-            volume_level: 0.65,
-            is_volume_muted: false,
-            source: "Line 3",
-            source_list: mockSources,
-            bass: 2,
-            treble: 0,
+            friendly_name: "Empfangsbereich Volume",
+            min: 0,
+            max: 70,
+            step: 1,
+            unit_of_measurement: "dB",
           },
         },
-        "media_player.audac_mtx_zone_2": {
-          state: "on",
-          entity_id: "media_player.audac_mtx_zone_2",
+        "select.audac_zone_1_source": {
+          state: "Line 3",
+          entity_id: "select.audac_zone_1_source",
           attributes: {
-            friendly_name: "Konferenzraum",
-            volume_level: 0.42,
-            is_volume_muted: false,
-            source: "Mic 1",
-            source_list: mockSources,
-            bass: 0,
-            treble: 4,
+            friendly_name: "Empfangsbereich Source",
+            options: sourceOptions,
           },
         },
-        "media_player.audac_mtx_zone_3": {
-          state: "on",
-          entity_id: "media_player.audac_mtx_zone_3",
-          attributes: {
-            friendly_name: "Restaurant",
-            volume_level: 0.3,
-            is_volume_muted: true,
-            source: "Line 5",
-            source_list: mockSources,
-            bass: -4,
-            treble: 2,
-          },
-        },
-        "media_player.audac_mtx_zone_4": {
-          state: "on",
-          entity_id: "media_player.audac_mtx_zone_4",
-          attributes: {
-            friendly_name: "Terrasse",
-            volume_level: 0.78,
-            is_volume_muted: false,
-            source: "Line 4",
-            source_list: mockSources,
-            bass: 6,
-            treble: -2,
-          },
-        },
-        "media_player.audac_mtx_zone_5": {
+        "switch.audac_zone_1_mute": {
           state: "off",
-          entity_id: "media_player.audac_mtx_zone_5",
+          entity_id: "switch.audac_zone_1_mute",
+          attributes: { friendly_name: "Empfangsbereich Mute" },
+        },
+
+        "number.audac_zone_2_volume": {
+          state: "30",
+          entity_id: "number.audac_zone_2_volume",
           attributes: {
-            friendly_name: "Lager",
-            volume_level: 0,
-            is_volume_muted: false,
-            source: "Off",
-            source_list: mockSources,
-            bass: 0,
-            treble: 0,
+            friendly_name: "Konferenzraum Volume",
+            min: 0, max: 70, step: 1, unit_of_measurement: "dB",
           },
+        },
+        "select.audac_zone_2_source": {
+          state: "Mic 1",
+          entity_id: "select.audac_zone_2_source",
+          attributes: { friendly_name: "Konferenzraum Source", options: sourceOptions },
+        },
+        "switch.audac_zone_2_mute": {
+          state: "off",
+          entity_id: "switch.audac_zone_2_mute",
+          attributes: { friendly_name: "Konferenzraum Mute" },
+        },
+
+        "number.audac_zone_3_volume": {
+          state: "20",
+          entity_id: "number.audac_zone_3_volume",
+          attributes: {
+            friendly_name: "Restaurant Volume",
+            min: 0, max: 70, step: 1, unit_of_measurement: "dB",
+          },
+        },
+        "select.audac_zone_3_source": {
+          state: "Line 5",
+          entity_id: "select.audac_zone_3_source",
+          attributes: { friendly_name: "Restaurant Source", options: sourceOptions },
+        },
+        "switch.audac_zone_3_mute": {
+          state: "on",
+          entity_id: "switch.audac_zone_3_mute",
+          attributes: { friendly_name: "Restaurant Mute" },
+        },
+
+        "number.audac_zone_4_volume": {
+          state: "55",
+          entity_id: "number.audac_zone_4_volume",
+          attributes: {
+            friendly_name: "Terrasse Volume",
+            min: 0, max: 70, step: 1, unit_of_measurement: "dB",
+          },
+        },
+        "select.audac_zone_4_source": {
+          state: "Line 4",
+          entity_id: "select.audac_zone_4_source",
+          attributes: { friendly_name: "Terrasse Source", options: sourceOptions },
+        },
+        "switch.audac_zone_4_mute": {
+          state: "off",
+          entity_id: "switch.audac_zone_4_mute",
+          attributes: { friendly_name: "Terrasse Mute" },
+        },
+
+        "number.audac_zone_5_volume": {
+          state: "0",
+          entity_id: "number.audac_zone_5_volume",
+          attributes: {
+            friendly_name: "Lager Volume",
+            min: 0, max: 70, step: 1, unit_of_measurement: "dB",
+          },
+        },
+        "select.audac_zone_5_source": {
+          state: "None",
+          entity_id: "select.audac_zone_5_source",
+          attributes: { friendly_name: "Lager Source", options: sourceOptions },
+        },
+        "switch.audac_zone_5_mute": {
+          state: "off",
+          entity_id: "switch.audac_zone_5_mute",
+          attributes: { friendly_name: "Lager Mute" },
         },
       },
       callService: async (domain, service, data) => {
@@ -191,12 +226,14 @@
         const entity = mockHass.states[entityId];
         if (!entity) return;
 
-        if (service === "volume_set") {
-          entity.attributes.volume_level = data.volume_level;
-        } else if (service === "volume_mute") {
-          entity.attributes.is_volume_muted = data.is_volume_muted;
-        } else if (service === "select_source") {
-          entity.attributes.source = data.source;
+        if (domain === "number" && service === "set_value") {
+          entity.state = String(data.value);
+        } else if (domain === "switch" && service === "turn_on") {
+          entity.state = "on";
+        } else if (domain === "switch" && service === "turn_off") {
+          entity.state = "off";
+        } else if (domain === "select" && service === "select_option") {
+          entity.state = data.option;
         }
 
         card.hass = mockHass;
@@ -208,11 +245,36 @@
     card.setConfig({
       title: "Audac MTX",
       zones: [
-        "media_player.audac_mtx_zone_1",
-        "media_player.audac_mtx_zone_2",
-        "media_player.audac_mtx_zone_3",
-        "media_player.audac_mtx_zone_4",
-        "media_player.audac_mtx_zone_5",
+        {
+          name: "Empfangsbereich",
+          volume: "number.audac_zone_1_volume",
+          source: "select.audac_zone_1_source",
+          mute: "switch.audac_zone_1_mute",
+        },
+        {
+          name: "Konferenzraum",
+          volume: "number.audac_zone_2_volume",
+          source: "select.audac_zone_2_source",
+          mute: "switch.audac_zone_2_mute",
+        },
+        {
+          name: "Restaurant",
+          volume: "number.audac_zone_3_volume",
+          source: "select.audac_zone_3_source",
+          mute: "switch.audac_zone_3_mute",
+        },
+        {
+          name: "Terrasse",
+          volume: "number.audac_zone_4_volume",
+          source: "select.audac_zone_4_source",
+          mute: "switch.audac_zone_4_mute",
+        },
+        {
+          name: "Lager",
+          volume: "number.audac_zone_5_volume",
+          source: "select.audac_zone_5_source",
+          mute: "switch.audac_zone_5_mute",
+        },
       ],
       show_bass_treble: true,
       show_source: true,

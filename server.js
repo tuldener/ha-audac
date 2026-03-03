@@ -19,7 +19,7 @@ const server = http.createServer((req, res) => {
   if (req.url === "/" || req.url === "/index.html") {
     filePath = path.join(__dirname, "preview", "index.html");
   } else if (req.url === "/audac-mtx-card.js") {
-    filePath = path.join(__dirname, "src", "audac-mtx-card.js");
+    filePath = path.join(__dirname, "dist", "audac-mtx-card.js");
   } else {
     filePath = path.join(__dirname, "preview", req.url);
   }

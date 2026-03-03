@@ -3,15 +3,15 @@ __pycache__/
 *.pyc
 .DS_Store
 
-# Development files (not needed for HACS)
-dist/
-src/
+# Development only (not needed for HACS plugin)
 preview/
 server.js
 package.json
+src/
 replit.md
 .replit
-attached_assets/
 .cache/
 .local/
 .agents/
+attached_assets/
+custom_components/

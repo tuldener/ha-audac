@@ -46,30 +46,50 @@ class AudacMTXCard extends HTMLElement {
     const zones = this._config.zones || [];
 
     if (zones.length > 0) {
-      return zones
-        .map((z) => {
-          const entityId =
-            typeof z === "string" ? z : z.entity;
-          const entity = this._hass.states[entityId];
-          if (!entity) return null;
-          return {
-            entityId,
-            entity,
-            name: (typeof z === "object" && z.name) || entity.attributes.friendly_name || entityId,
-            icon: (typeof z === "object" && z.icon) || "mdi:speaker",
-          };
-        })
-        .filter(Boolean);
+      return zones.map((z) => {
+        const cfg = typeof z === "string" ? { volume: z } : z;
+        const volEntity = this._hass.states[cfg.volume];
+        if (!volEntity) return null;
+
+        return {
+          config: cfg,
+          volume: volEntity,
+          source: cfg.source ? this._hass.states[cfg.source] : null,
+          mute: cfg.mute ? this._hass.states[cfg.mute] : null,
+          bass: cfg.bass ? this._hass.states[cfg.bass] : null,
+          treble: cfg.treble ? this._hass.states[cfg.treble] : null,
+          name: cfg.name || volEntity.attributes.friendly_name || cfg.volume,
+          icon: cfg.icon || "mdi:speaker",
+        };
+      }).filter(Boolean);
     }
 
-    return Object.keys(this._hass.states)
-      .filter((id) => id.startsWith("media_player.") && id.includes("audac"))
-      .map((entityId) => ({
-        entityId,
-        entity: this._hass.states[entityId],
-        name: this._hass.states[entityId].attributes.friendly_name || entityId,
+    return this._autoDiscoverZones();
+  }
+
+  _autoDiscoverZones() {
+    if (!this._hass) return [];
+    const entities = this._hass.states;
+    const volumeEntities = Object.keys(entities)
+      .filter((id) => id.startsWith("number.") && id.includes("audac") && id.includes("volume"))
+      .sort();
+
+    return volumeEntities.map((volId) => {
+      const base = volId.replace(/_volume$/, "");
+      const sourceId = base.replace("number.", "select.") + "_source";
+      const muteId = base.replace("number.", "switch.") + "_mute";
+
+      return {
+        config: { volume: volId, source: sourceId, mute: muteId },
+        volume: entities[volId],
+        source: entities[sourceId] || null,
+        mute: entities[muteId] || null,
+        bass: null,
+        treble: null,
+        name: entities[volId]?.attributes?.friendly_name?.replace(" Volume", "") || volId,
         icon: "mdi:speaker",
-      }));
+      };
+    });
   }
 
   _toggleExpand(entityId) {
@@ -83,33 +103,63 @@ class AudacMTXCard extends HTMLElement {
     }
   }
 
-  _handleVolumeChange(entityId, value) {
-    this._callService("media_player", "volume_set", {
-      entity_id: entityId,
-      volume_level: value / 100,
+  _handleVolumeChange(volEntityId, value) {
+    this._callService("number", "set_value", {
+      entity_id: volEntityId,
+      value: value,
     });
   }
 
-  _handleMuteToggle(entityId, currentMute) {
-    this._callService("media_player", "volume_mute", {
-      entity_id: entityId,
-      is_volume_muted: !currentMute,
+  _handleMuteToggle(muteEntityId, currentlyOn) {
+    this._callService("switch", currentlyOn ? "turn_off" : "turn_on", {
+      entity_id: muteEntityId,
     });
   }
 
-  _handleSourceSelect(entityId, source) {
-    this._callService("media_player", "select_source", {
-      entity_id: entityId,
-      source: source,
+  _handleSourceSelect(selectEntityId, option) {
+    this._callService("select", "select_option", {
+      entity_id: selectEntityId,
+      option: option,
     });
+  }
+
+  _getVolumePercent(zone) {
+    const vol = zone.volume;
+    if (!vol) return 0;
+    const min = vol.attributes.min || 0;
+    const max = vol.attributes.max || 100;
+    const val = parseFloat(vol.state) || 0;
+    return Math.round(((val - min) / (max - min)) * 100);
+  }
+
+  _getVolumeValue(zone) {
+    if (!zone.volume) return 0;
+    return parseFloat(zone.volume.state) || 0;
+  }
+
+  _isMuted(zone) {
+    if (!zone.mute) return false;
+    return zone.mute.state === "on";
+  }
+
+  _getSource(zone) {
+    if (!zone.source) return "---";
+    return zone.source.state || "---";
+  }
+
+  _getSourceList(zone) {
+    if (!zone.source) return [];
+    return zone.source.attributes.options || [];
   }
 
   _render() {
     if (!this.shadowRoot) return;
 
     const zones = this._getZoneEntities();
-    const isDark = this._config.theme === "dark" || 
+    const isDark = this._config.theme === "dark" ||
       (this._config.theme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+    const activeCount = zones.filter(z => !this._isMuted(z) && this._getVolumePercent(z) > 0).length;
 
     this.shadowRoot.innerHTML = `
       <style>${this._getStyles(isDark)}</style>
@@ -122,9 +172,9 @@ class AudacMTXCard extends HTMLElement {
           </div>
           <div class="header-content">
             <h2 class="header-title">${this._config.title}</h2>
-            <span class="header-subtitle">${zones.length} Zone${zones.length !== 1 ? 'n' : ''} aktiv</span>
+            <span class="header-subtitle">${zones.length} Zone${zones.length !== 1 ? 'n' : ''}</span>
           </div>
-          <div class="header-badge">${zones.filter(z => z.entity.state === "on").length}/${zones.length}</div>
+          <div class="header-badge">${activeCount}/${zones.length}</div>
         </div>
         <div class="zones-container">
           ${zones.length > 0 ? zones.map((z) => this._renderZone(z)).join("") : this._renderEmptyState()}
@@ -142,42 +192,38 @@ class AudacMTXCard extends HTMLElement {
           <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
         </svg>
         <p>Keine Zonen konfiguriert</p>
-        <span>Füge Audac MTX Entities zur Konfiguration hinzu</span>
+        <span>Audac MTX Entities zur Konfiguration hinzufügen</span>
       </div>
     `;
   }
 
   _renderZone(zone) {
-    const { entityId, entity, name, icon } = zone;
-    const isExpanded = this._expanded[entityId] || false;
-    const volumeLevel = entity.attributes.volume_level || 0;
-    const volumePercent = Math.round(volumeLevel * 100);
-    const isMuted = entity.attributes.is_volume_muted || false;
-    const source = entity.attributes.source || "---";
-    const sourceList = entity.attributes.source_list || [];
-    const bass = entity.attributes.bass || 0;
-    const treble = entity.attributes.treble || 0;
-    const isOn = entity.state === "on";
-    const isOff = entity.state === "off";
+    const volEntityId = zone.config.volume;
+    const isExpanded = this._expanded[volEntityId] || false;
+    const volumePercent = this._getVolumePercent(zone);
+    const isMuted = this._isMuted(zone);
+    const source = this._getSource(zone);
+    const isOff = volumePercent === 0 && !isMuted;
+    const isActive = volumePercent > 0 && !isMuted;
 
     return `
-      <div class="zone-card ${isExpanded ? 'expanded' : ''} ${isMuted ? 'muted' : ''} ${isOff ? 'off' : ''}" data-entity="${entityId}">
-        <div class="zone-main" data-toggle="${entityId}">
+      <div class="zone-card ${isExpanded ? 'expanded' : ''} ${isMuted ? 'muted' : ''} ${isOff ? 'off' : ''}" data-entity="${volEntityId}">
+        <div class="zone-main" data-toggle="${volEntityId}">
           <div class="zone-volume-bg" style="width: ${isMuted ? 0 : volumePercent}%"></div>
           <div class="zone-content">
-            <div class="zone-icon ${isOn ? 'active' : ''}">
+            <div class="zone-icon ${isActive ? 'active' : ''}">
               <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-                ${isMuted 
+                ${isMuted
                   ? '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>'
                   : '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>'
                 }
               </svg>
             </div>
             <div class="zone-info">
-              <span class="zone-name">${name}</span>
+              <span class="zone-name">${zone.name}</span>
               <span class="zone-detail">
-                ${isMuted ? 'Stumm' : volumePercent + '% Lautstärke'}
-                ${this._config.show_source ? ' · ' + source : ''}
+                ${isMuted ? 'Stumm' : volumePercent + '%'}
+                ${this._config.show_source && source !== '---' ? ' · ' + source : ''}
               </span>
             </div>
             <div class="zone-volume-badge ${isMuted ? 'muted-badge' : ''}">
@@ -190,13 +236,26 @@ class AudacMTXCard extends HTMLElement {
             </div>
           </div>
         </div>
-        
-        ${isExpanded ? this._renderExpandedControls(entityId, volumePercent, isMuted, source, sourceList, bass, treble) : ''}
+
+        ${isExpanded ? this._renderExpandedControls(zone) : ''}
       </div>
     `;
   }
 
-  _renderExpandedControls(entityId, volumePercent, isMuted, source, sourceList, bass, treble) {
+  _renderExpandedControls(zone) {
+    const volEntityId = zone.config.volume;
+    const muteEntityId = zone.config.mute;
+    const selectEntityId = zone.config.source;
+    const volumePercent = this._getVolumePercent(zone);
+    const volumeValue = this._getVolumeValue(zone);
+    const isMuted = this._isMuted(zone);
+    const source = this._getSource(zone);
+    const sourceList = this._getSourceList(zone);
+    const volMin = zone.volume?.attributes?.min || 0;
+    const volMax = zone.volume?.attributes?.max || 100;
+    const volStep = zone.volume?.attributes?.step || 1;
+    const volUnit = zone.volume?.attributes?.unit_of_measurement || "";
+
     return `
       <div class="zone-controls">
         <div class="control-section">
@@ -207,23 +266,25 @@ class AudacMTXCard extends HTMLElement {
             Lautstärke
           </div>
           <div class="volume-control">
-            <button class="btn-icon btn-mute ${isMuted ? 'active' : ''}" data-mute="${entityId}" data-muted="${isMuted}">
+            ${muteEntityId ? `
+            <button class="btn-icon btn-mute ${isMuted ? 'active' : ''}" data-mute="${muteEntityId}" data-muted="${isMuted}">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                ${isMuted 
+                ${isMuted
                   ? '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>'
                   : '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>'
                 }
               </svg>
             </button>
+            ` : ''}
             <div class="slider-container">
-              <input type="range" class="volume-slider" min="0" max="100" value="${volumePercent}" data-volume="${entityId}" />
+              <input type="range" class="volume-slider" min="${volMin}" max="${volMax}" step="${volStep}" value="${volumeValue}" data-volume="${volEntityId}" />
               <div class="slider-fill" style="width: ${volumePercent}%"></div>
             </div>
-            <span class="volume-value">${volumePercent}%</span>
+            <span class="volume-value">${volumeValue}${volUnit ? ' ' + volUnit : ''}</span>
           </div>
         </div>
 
-        ${this._config.show_source ? `
+        ${this._config.show_source && selectEntityId && sourceList.length > 0 ? `
         <div class="control-section">
           <div class="control-label">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
@@ -233,7 +294,7 @@ class AudacMTXCard extends HTMLElement {
           </div>
           <div class="source-grid">
             ${sourceList.map((s) => `
-              <button class="source-btn ${s === source ? 'active' : ''}" data-source="${entityId}" data-value="${s}">
+              <button class="source-btn ${s === source ? 'active' : ''}" data-source="${selectEntityId}" data-value="${s}">
                 ${s}
               </button>
             `).join("")}
@@ -241,26 +302,20 @@ class AudacMTXCard extends HTMLElement {
         </div>
         ` : ''}
 
-        ${this._config.show_bass_treble ? `
+        ${this._config.show_bass_treble && (zone.bass || zone.treble) ? `
         <div class="control-section tone-section">
+          ${zone.bass ? `
           <div class="tone-control">
-            <div class="control-label">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7V7h2v10zm4 0h-2V10h2v7zm4 0h-2V13h2v4z"/>
-              </svg>
-              Bass
-            </div>
-            <div class="tone-value ${bass > 0 ? 'positive' : bass < 0 ? 'negative' : ''}">${bass > 0 ? '+' : ''}${bass} dB</div>
+            <div class="control-label">Bass</div>
+            <div class="tone-value">${zone.bass.state || '0'} ${zone.bass.attributes?.unit_of_measurement || ''}</div>
           </div>
+          ` : ''}
+          ${zone.treble ? `
           <div class="tone-control">
-            <div class="control-label">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7V10h2v7zm4 0h-2V7h2v10zm4 0h-2V13h2v4z"/>
-              </svg>
-              Höhen
-            </div>
-            <div class="tone-value ${treble > 0 ? 'positive' : treble < 0 ? 'negative' : ''}">${treble > 0 ? '+' : ''}${treble} dB</div>
+            <div class="control-label">Höhen</div>
+            <div class="tone-value">${zone.treble.state || '0'} ${zone.treble.attributes?.unit_of_measurement || ''}</div>
           </div>
+          ` : ''}
         </div>
         ` : ''}
       </div>
@@ -287,14 +342,17 @@ class AudacMTXCard extends HTMLElement {
 
     root.querySelectorAll("[data-volume]").forEach((el) => {
       el.addEventListener("input", (e) => {
-        const val = parseInt(e.target.value);
+        const min = parseFloat(el.min) || 0;
+        const max = parseFloat(el.max) || 100;
+        const val = parseFloat(e.target.value);
+        const pct = Math.round(((val - min) / (max - min)) * 100);
         const fill = e.target.closest('.slider-container').querySelector('.slider-fill');
-        if (fill) fill.style.width = val + '%';
+        if (fill) fill.style.width = pct + '%';
         const valSpan = e.target.closest('.volume-control').querySelector('.volume-value');
-        if (valSpan) valSpan.textContent = val + '%';
+        if (valSpan) valSpan.textContent = val;
       });
       el.addEventListener("change", (e) => {
-        this._handleVolumeChange(el.dataset.volume, parseInt(e.target.value));
+        this._handleVolumeChange(el.dataset.volume, parseFloat(e.target.value));
       });
       el.addEventListener("click", (e) => e.stopPropagation());
     });
@@ -319,12 +377,7 @@ class AudacMTXCard extends HTMLElement {
     const mutedColor = "#ef5350";
 
     return `
-      :host {
-        display: block;
-        --accent: ${accent};
-        --accent-light: ${accentLight};
-      }
-
+      :host { display: block; --accent: ${accent}; --accent-light: ${accentLight}; }
       * { box-sizing: border-box; margin: 0; padding: 0; }
 
       .audac-mtx-card {
@@ -338,160 +391,96 @@ class AudacMTXCard extends HTMLElement {
       }
 
       .card-header {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        margin-bottom: 18px;
-        padding: 0 4px;
+        display: flex; align-items: center; gap: 14px;
+        margin-bottom: 18px; padding: 0 4px;
       }
 
       .header-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 16px;
+        width: 48px; height: 48px; border-radius: 16px;
         background: linear-gradient(135deg, ${accent}, #a78bfa);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        color: white; flex-shrink: 0;
       }
 
       .header-content { flex: 1; min-width: 0; }
 
       .header-title {
-        font-size: 18px;
-        font-weight: 700;
-        letter-spacing: -0.3px;
-        line-height: 1.3;
+        font-size: 18px; font-weight: 700;
+        letter-spacing: -0.3px; line-height: 1.3;
       }
 
-      .header-subtitle {
-        font-size: 12px;
-        color: ${textSec};
-        font-weight: 500;
-      }
+      .header-subtitle { font-size: 12px; color: ${textSec}; font-weight: 500; }
 
       .header-badge {
-        background: ${accentLight};
-        color: ${accent};
-        font-size: 13px;
-        font-weight: 700;
-        padding: 6px 12px;
-        border-radius: 12px;
-        white-space: nowrap;
+        background: ${accentLight}; color: ${accent};
+        font-size: 13px; font-weight: 700;
+        padding: 6px 12px; border-radius: 12px; white-space: nowrap;
       }
 
-      .zones-container {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
+      .zones-container { display: flex; flex-direction: column; gap: 8px; }
 
       .zone-card {
-        background: ${cardBg};
-        border-radius: 18px;
-        overflow: hidden;
+        background: ${cardBg}; border-radius: 18px; overflow: hidden;
         transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
         border: 1px solid transparent;
       }
 
-      .zone-card:hover {
-        background: ${cardBgHover};
-      }
+      .zone-card:hover { background: ${cardBgHover}; }
 
       .zone-card.expanded {
         border-color: ${isDark ? 'rgba(124, 107, 240, 0.2)' : 'rgba(124, 107, 240, 0.15)'};
         background: ${isDark ? 'rgba(45, 48, 58, 0.9)' : 'rgba(240, 242, 248, 0.95)'};
       }
 
-      .zone-card.muted .zone-volume-bg {
-        opacity: 0 !important;
-      }
-
-      .zone-card.off {
-        opacity: 0.5;
-      }
+      .zone-card.muted .zone-volume-bg { opacity: 0 !important; }
+      .zone-card.off { opacity: 0.5; }
 
       .zone-main {
-        position: relative;
-        cursor: pointer;
-        padding: 14px 16px;
-        overflow: hidden;
+        position: relative; cursor: pointer;
+        padding: 14px 16px; overflow: hidden;
       }
 
       .zone-volume-bg {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
+        position: absolute; top: 0; left: 0; height: 100%;
         background: linear-gradient(90deg, ${accentLight}, transparent);
         transition: width 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
         pointer-events: none;
       }
 
       .zone-content {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        z-index: 1;
+        position: relative; display: flex; align-items: center;
+        gap: 12px; z-index: 1;
       }
 
       .zone-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
+        width: 40px; height: 40px; border-radius: 12px;
         background: ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'};
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: ${textSec};
-        transition: all 0.3s ease;
-        flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        color: ${textSec}; transition: all 0.3s ease; flex-shrink: 0;
       }
 
       .zone-icon.active {
-        background: linear-gradient(135deg, ${accent}, #a78bfa);
-        color: white;
+        background: linear-gradient(135deg, ${accent}, #a78bfa); color: white;
       }
 
       .zone-info {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
+        flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
       }
 
       .zone-name {
-        font-size: 14px;
-        font-weight: 600;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 14px; font-weight: 600;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
 
       .zone-detail {
-        font-size: 11px;
-        color: ${textSec};
-        font-weight: 500;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 11px; color: ${textSec}; font-weight: 500;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
 
       .zone-volume-badge {
-        font-size: 13px;
-        font-weight: 700;
-        color: ${accent};
-        background: ${accentLight};
-        padding: 4px 10px;
-        border-radius: 10px;
-        white-space: nowrap;
-        min-width: 48px;
-        text-align: center;
-        flex-shrink: 0;
+        font-size: 13px; font-weight: 700; color: ${accent};
+        background: ${accentLight}; padding: 4px 10px; border-radius: 10px;
+        white-space: nowrap; min-width: 48px; text-align: center; flex-shrink: 0;
       }
 
       .zone-volume-badge.muted-badge {
@@ -501,20 +490,13 @@ class AudacMTXCard extends HTMLElement {
       }
 
       .zone-expand-icon {
-        color: ${textSec};
-        transition: transform 0.3s ease;
-        flex-shrink: 0;
+        color: ${textSec}; transition: transform 0.3s ease; flex-shrink: 0;
       }
 
-      .zone-expand-icon.rotated {
-        transform: rotate(180deg);
-      }
+      .zone-expand-icon.rotated { transform: rotate(180deg); }
 
       .zone-controls {
-        padding: 4px 16px 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
+        padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 14px;
         animation: slideDown 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
       }
 
@@ -523,42 +505,22 @@ class AudacMTXCard extends HTMLElement {
         to { opacity: 1; transform: translateY(0); }
       }
 
-      .control-section {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
+      .control-section { display: flex; flex-direction: column; gap: 8px; }
 
       .control-label {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: ${textSec};
+        display: flex; align-items: center; gap: 6px;
+        font-size: 11px; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 0.8px; color: ${textSec};
       }
 
-      .volume-control {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
+      .volume-control { display: flex; align-items: center; gap: 10px; }
 
       .btn-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        border: none;
+        width: 36px; height: 36px; border-radius: 10px; border: none;
         background: ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'};
-        color: ${textSec};
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        flex-shrink: 0;
+        color: ${textSec}; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.2s ease; flex-shrink: 0;
       }
 
       .btn-icon:hover {
@@ -571,93 +533,55 @@ class AudacMTXCard extends HTMLElement {
       }
 
       .slider-container {
-        flex: 1;
-        position: relative;
-        height: 36px;
-        display: flex;
-        align-items: center;
+        flex: 1; position: relative; height: 36px;
+        display: flex; align-items: center;
         background: ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'};
-        border-radius: 10px;
-        overflow: hidden;
+        border-radius: 10px; overflow: hidden;
       }
 
       .slider-fill {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
+        position: absolute; top: 0; left: 0; height: 100%;
         background: linear-gradient(90deg, ${accentLight}, ${isDark ? 'rgba(124, 107, 240, 0.25)' : 'rgba(124, 107, 240, 0.18)'});
-        border-radius: 10px;
-        transition: width 0.1s ease;
-        pointer-events: none;
+        border-radius: 10px; transition: width 0.1s ease; pointer-events: none;
       }
 
       .volume-slider {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 100%;
-        height: 100%;
-        background: transparent;
-        cursor: pointer;
-        position: relative;
-        z-index: 2;
-        margin: 0;
-        padding: 0 12px;
+        -webkit-appearance: none; appearance: none;
+        width: 100%; height: 100%; background: transparent;
+        cursor: pointer; position: relative; z-index: 2; margin: 0; padding: 0 12px;
       }
 
       .volume-slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: ${accent};
+        -webkit-appearance: none; width: 16px; height: 16px;
+        border-radius: 50%; background: ${accent};
         box-shadow: 0 2px 6px rgba(124, 107, 240, 0.4);
-        cursor: pointer;
-        transition: transform 0.15s ease;
+        cursor: pointer; transition: transform 0.15s ease;
       }
 
-      .volume-slider::-webkit-slider-thumb:hover {
-        transform: scale(1.2);
-      }
+      .volume-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
       .volume-slider::-moz-range-thumb {
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: ${accent};
-        box-shadow: 0 2px 6px rgba(124, 107, 240, 0.4);
-        cursor: pointer;
-        border: none;
+        width: 16px; height: 16px; border-radius: 50%;
+        background: ${accent}; box-shadow: 0 2px 6px rgba(124, 107, 240, 0.4);
+        cursor: pointer; border: none;
       }
 
       .volume-value {
-        font-size: 13px;
-        font-weight: 700;
-        color: ${accent};
-        min-width: 36px;
-        text-align: right;
-        flex-shrink: 0;
+        font-size: 13px; font-weight: 700; color: ${accent};
+        min-width: 36px; text-align: right; flex-shrink: 0;
       }
 
       .source-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-        gap: 6px;
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px;
       }
 
       .source-btn {
-        padding: 8px 10px;
-        border-radius: 10px;
+        padding: 8px 10px; border-radius: 10px;
         border: 1px solid ${border};
         background: ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'};
-        color: ${textSec};
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        color: ${textSec}; font-size: 11px; font-weight: 600;
+        cursor: pointer; transition: all 0.2s ease;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
 
       .source-btn:hover {
@@ -666,54 +590,27 @@ class AudacMTXCard extends HTMLElement {
       }
 
       .source-btn.active {
-        background: ${accentLight};
-        color: ${accent};
+        background: ${accentLight}; color: ${accent};
         border-color: ${isDark ? 'rgba(124, 107, 240, 0.3)' : 'rgba(124, 107, 240, 0.2)'};
       }
 
-      .tone-section {
-        flex-direction: row;
-        gap: 12px;
-      }
+      .tone-section { flex-direction: row; gap: 12px; }
 
       .tone-control {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
+        flex: 1; display: flex; flex-direction: column; gap: 6px;
         background: ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'};
-        padding: 10px 12px;
-        border-radius: 12px;
+        padding: 10px 12px; border-radius: 12px;
       }
 
-      .tone-value {
-        font-size: 18px;
-        font-weight: 700;
-        color: ${text};
-      }
-
-      .tone-value.positive { color: #66bb6a; }
-      .tone-value.negative { color: ${mutedColor}; }
+      .tone-value { font-size: 18px; font-weight: 700; color: ${text}; }
 
       .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 40px 20px;
-        gap: 8px;
-        color: ${textSec};
+        display: flex; flex-direction: column; align-items: center;
+        justify-content: center; padding: 40px 20px; gap: 8px; color: ${textSec};
       }
 
-      .empty-state p {
-        font-size: 14px;
-        font-weight: 600;
-      }
-
-      .empty-state span {
-        font-size: 12px;
-        opacity: 0.6;
-      }
+      .empty-state p { font-size: 14px; font-weight: 600; }
+      .empty-state span { font-size: 12px; opacity: 0.6; }
     `;
   }
 
@@ -739,77 +636,24 @@ class AudacMTXCardEditor extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host { display: block; }
-        .editor {
-          padding: 16px;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-        .field {
-          margin-bottom: 12px;
-        }
-        label {
-          display: block;
-          font-size: 12px;
-          font-weight: 600;
-          margin-bottom: 4px;
-          color: var(--primary-text-color, #333);
-        }
-        input, select {
-          width: 100%;
-          padding: 8px 12px;
-          border: 1px solid var(--divider-color, #ddd);
-          border-radius: 8px;
-          font-size: 14px;
-          background: var(--card-background-color, #fff);
-          color: var(--primary-text-color, #333);
-        }
-        textarea {
-          width: 100%;
-          padding: 8px 12px;
-          border: 1px solid var(--divider-color, #ddd);
-          border-radius: 8px;
-          font-size: 13px;
-          font-family: monospace;
-          min-height: 80px;
-          background: var(--card-background-color, #fff);
-          color: var(--primary-text-color, #333);
-        }
-        .checkbox-field {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 8px;
-        }
+        .editor { padding: 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .field { margin-bottom: 12px; }
+        label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--primary-text-color, #333); }
+        input, select { width: 100%; padding: 8px 12px; border: 1px solid var(--divider-color, #ddd); border-radius: 8px; font-size: 14px; background: var(--card-background-color, #fff); color: var(--primary-text-color, #333); }
+        .checkbox-field { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
         .checkbox-field input { width: auto; }
-        .section-title {
-          font-size: 13px;
-          font-weight: 700;
-          margin: 16px 0 8px;
-          padding-top: 12px;
-          border-top: 1px solid var(--divider-color, #ddd);
-          color: var(--primary-text-color, #333);
-        }
-        .section-title:first-of-type {
-          margin-top: 0;
-          padding-top: 0;
-          border-top: none;
-        }
-        .zone-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 8px;
-          margin-bottom: 8px;
-        }
-        .zone-row input {
-          width: 100%;
-        }
-        .hint {
-          font-size: 11px;
-          color: var(--secondary-text-color, #888);
-          margin-bottom: 8px;
-        }
+        .section-title { font-size: 13px; font-weight: 700; margin: 16px 0 8px; padding-top: 12px; border-top: 1px solid var(--divider-color, #ddd); color: var(--primary-text-color, #333); }
+        .zone-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; padding: 10px; background: var(--secondary-background-color, #f5f5f5); border-radius: 10px; }
+        .zone-row-header { display: flex; justify-content: space-between; align-items: center; }
+        .zone-row-header strong { font-size: 13px; }
+        .zone-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .zone-fields input { font-size: 12px; padding: 6px 8px; }
+        .zone-fields label { font-size: 10px; margin-bottom: 2px; }
+        .hint { font-size: 11px; color: var(--secondary-text-color, #888); margin-bottom: 8px; }
+        .btn-remove { border: none; background: none; cursor: pointer; color: #ef5350; font-size: 14px; padding: 2px 6px; }
+        .btn-add { margin-top: 4px; padding: 8px 14px; border-radius: 8px; border: 1px dashed var(--divider-color, #ccc); background: transparent; color: var(--primary-text-color, #333); cursor: pointer; font-size: 13px; width: 100%; }
       </style>
       <div class="editor">
-        <div class="section-title">Allgemein</div>
         <div class="field">
           <label>Titel</label>
           <input type="text" id="title" value="${this._config.title || 'Audac MTX'}" />
@@ -832,94 +676,61 @@ class AudacMTXCardEditor extends HTMLElement {
         </div>
 
         <div class="section-title">Zonen</div>
-        <p class="hint">Entity-ID und optionaler Anzeigename pro Zone. Der Anzeigename überschreibt den friendly_name aus Home Assistant.</p>
+        <p class="hint">Verknüpfe die Entities aus der Audac Integration (ha-audac). Leer lassen für automatische Erkennung.</p>
         ${this._renderZoneRows()}
-
-        <button class="btn-add" id="add-zone" style="
-          margin-top: 4px;
-          padding: 6px 14px;
-          border-radius: 8px;
-          border: 1px dashed var(--divider-color, #ccc);
-          background: transparent;
-          color: var(--primary-text-color, #333);
-          cursor: pointer;
-          font-size: 13px;
-          width: 100%;
-        ">+ Zone hinzufügen</button>
+        <button class="btn-add" id="add-zone">+ Zone hinzufügen</button>
       </div>
     `;
 
-    this.shadowRoot.getElementById("title").addEventListener("change", (e) => {
-      this._config.title = e.target.value;
-      this._fireChanged();
-    });
-    this.shadowRoot.getElementById("theme").addEventListener("change", (e) => {
-      this._config.theme = e.target.value;
-      this._fireChanged();
-    });
-    this.shadowRoot.getElementById("show_source").addEventListener("change", (e) => {
-      this._config.show_source = e.target.checked;
-      this._fireChanged();
-    });
-    this.shadowRoot.getElementById("show_bass_treble").addEventListener("change", (e) => {
-      this._config.show_bass_treble = e.target.checked;
-      this._fireChanged();
-    });
+    this.shadowRoot.getElementById("title").addEventListener("change", (e) => { this._config.title = e.target.value; this._fireChanged(); });
+    this.shadowRoot.getElementById("theme").addEventListener("change", (e) => { this._config.theme = e.target.value; this._fireChanged(); });
+    this.shadowRoot.getElementById("show_source").addEventListener("change", (e) => { this._config.show_source = e.target.checked; this._fireChanged(); });
+    this.shadowRoot.getElementById("show_bass_treble").addEventListener("change", (e) => { this._config.show_bass_treble = e.target.checked; this._fireChanged(); });
     this.shadowRoot.getElementById("add-zone").addEventListener("click", () => {
       if (!this._config.zones) this._config.zones = [];
-      this._config.zones.push({ entity: "", name: "" });
+      this._config.zones.push({ volume: "", source: "", mute: "", name: "" });
       this._render();
     });
-    this.shadowRoot.querySelectorAll("[data-zone-entity]").forEach((el) => {
+    this.shadowRoot.querySelectorAll("[data-zone-field]").forEach((el) => {
       el.addEventListener("change", (e) => {
-        const idx = parseInt(el.dataset.zoneEntity);
-        this._ensureZoneObject(idx);
-        this._config.zones[idx].entity = e.target.value.trim();
-        this._fireChanged();
-      });
-    });
-    this.shadowRoot.querySelectorAll("[data-zone-name]").forEach((el) => {
-      el.addEventListener("change", (e) => {
-        const idx = parseInt(el.dataset.zoneName);
-        this._ensureZoneObject(idx);
-        this._config.zones[idx].name = e.target.value.trim();
+        const [idx, field] = el.dataset.zoneField.split(":");
+        this._ensureZone(parseInt(idx));
+        this._config.zones[parseInt(idx)][field] = e.target.value.trim();
         this._fireChanged();
       });
     });
     this.shadowRoot.querySelectorAll("[data-zone-remove]").forEach((el) => {
       el.addEventListener("click", () => {
-        const idx = parseInt(el.dataset.zoneRemove);
-        this._config.zones.splice(idx, 1);
+        this._config.zones.splice(parseInt(el.dataset.zoneRemove), 1);
         this._fireChanged();
         this._render();
       });
     });
   }
 
-  _ensureZoneObject(idx) {
+  _ensureZone(idx) {
     if (!this._config.zones) this._config.zones = [];
     while (this._config.zones.length <= idx) {
-      this._config.zones.push({ entity: "", name: "" });
-    }
-    if (typeof this._config.zones[idx] === "string") {
-      this._config.zones[idx] = { entity: this._config.zones[idx], name: "" };
+      this._config.zones.push({ volume: "", source: "", mute: "", name: "" });
     }
   }
 
   _renderZoneRows() {
     const zones = this._config.zones || [];
-    if (zones.length === 0) return '<p class="hint">Noch keine Zonen konfiguriert. Klicke "+ Zone hinzufügen".</p>';
+    if (zones.length === 0) return '<p class="hint">Keine Zonen konfiguriert – automatische Erkennung aktiv.</p>';
     return zones.map((z, i) => {
-      const entity = typeof z === "string" ? z : (z.entity || "");
-      const name = typeof z === "object" ? (z.name || "") : "";
+      const zone = typeof z === "string" ? { volume: z } : z;
       return `
         <div class="zone-row">
-          <input type="text" placeholder="media_player.audac_mtx_zone_${i+1}" value="${entity}" data-zone-entity="${i}" />
-          <div style="display:flex;gap:4px;">
-            <input type="text" placeholder="Anzeigename (optional)" value="${name}" data-zone-name="${i}" style="flex:1;" />
-            <button data-zone-remove="${i}" style="
-              border: none; background: none; cursor: pointer; color: #ef5350; font-size: 16px; padding: 0 6px;
-            ">✕</button>
+          <div class="zone-row-header">
+            <strong>Zone ${i + 1}${zone.name ? ': ' + zone.name : ''}</strong>
+            <button class="btn-remove" data-zone-remove="${i}">✕</button>
+          </div>
+          <div class="zone-fields">
+            <div><label>Anzeigename</label><input placeholder="z.B. Empfang" value="${zone.name || ''}" data-zone-field="${i}:name" /></div>
+            <div><label>Volume Entity (number.*)</label><input placeholder="number.audac_zone_1_volume" value="${zone.volume || ''}" data-zone-field="${i}:volume" /></div>
+            <div><label>Source Entity (select.*)</label><input placeholder="select.audac_zone_1_source" value="${zone.source || ''}" data-zone-field="${i}:source" /></div>
+            <div><label>Mute Entity (switch.*)</label><input placeholder="switch.audac_zone_1_mute" value="${zone.mute || ''}" data-zone-field="${i}:mute" /></div>
           </div>
         </div>
       `;
@@ -927,12 +738,11 @@ class AudacMTXCardEditor extends HTMLElement {
   }
 
   _fireChanged() {
-    const event = new CustomEvent("config-changed", {
+    this.dispatchEvent(new CustomEvent("config-changed", {
       detail: { config: this._config },
       bubbles: true,
       composed: true,
-    });
-    this.dispatchEvent(event);
+    }));
   }
 }
 
@@ -943,9 +753,9 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "audac-mtx-card",
   name: "Audac MTX Card",
-  description: "A Bubble Card-inspired controller for Audac MTX audio matrices",
+  description: "Bubble Card-inspired controller for Audac MTX audio matrices (works with ha-audac integration)",
   preview: true,
-  documentationURL: "https://github.com/ha-audac-mtx",
+  documentationURL: "https://github.com/tuldener/Audac-Mtx-Control",
 });
 
 console.info(

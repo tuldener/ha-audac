@@ -1,38 +1,38 @@
-# ha-audac-mtx
+# Audac MTX Card
 
-HACS Dashboard integration for Home Assistant to control Audac MTX audio matrices (MTX48/MTX88).
+HACS Dashboard Plugin (Lovelace Card) for Home Assistant to control Audac MTX audio matrices (MTX48/MTX88).
+Works together with the [ha-audac](https://github.com/tuldener/ha-audac) backend integration.
 
 ## Architecture
 
-### Backend (Custom Component)
-- `custom_components/audac_mtx/` — HA integration that communicates with MTX via TCP/IP (port 5001)
-- `mtx_client.py` — Async TCP client with auto-reconnect, implementing the full MTX command protocol
-- `coordinator.py` — HA DataUpdateCoordinator for polling zone states (10s interval)
-- `media_player.py` — MediaPlayer entities per zone (volume, mute, source/routing, bass, treble)
-- `config_flow.py` — UI-based setup flow (host, port, zone count) + Options flow for zone/source naming
-- `translations/` — EN and DE translations for config and options flows
-
-### Configuration
-- **Initial Setup (Config Flow):** IP address, port (default 5001), number of zones (1-8), device name
-- **Options Flow:** Custom zone names (per zone) and source/input names (per input 0-8)
-- **Card Editor:** Title, theme, bass/treble toggle, source toggle, per-zone entity + display name
+This is a **pure HACS Plugin** (Dashboard type) — no custom_components. The backend is provided by ha-audac.
 
 ### Frontend (Lovelace Card)
-- `src/audac-mtx-card.js` — Custom Lovelace card (Web Component), Bubble Card-inspired design
-- `dist/audac-mtx-card.js` — Production build copy
+- `dist/audac-mtx-card.js` — Custom Lovelace card (Web Component), Bubble Card-inspired design
+- Works with ha-audac entities: `number.*_volume`, `select.*_source`, `switch.*_mute`
 - Card features: volume sliders, mute toggle, source selection grid, bass/treble display, dark/light theme
-- Card editor with German labels, zone management (entity + name pairs)
+- Auto-discovery of Audac entities, or manual zone configuration
+- Card editor with German labels
 
-### Preview Server
-- `server.js` — Simple Node.js HTTP server for card preview with mock data
-- `preview/index.html` — Preview page with mock HA states
+### HACS Structure (GitHub only)
+```
+dist/audac-mtx-card.js    # The card JS file
+hacs.json                  # HACS plugin manifest (filename: audac-mtx-card.js)
+README.md                  # Documentation
+LICENSE                    # MIT License
+```
 
-## MTX Protocol
-- TCP/IP on port 5001, command format: `#|X001|source|command|args|U|\r\n`
-- Supports: volume (SV), routing/source (SR), bass (SB), treble (ST), mute (SM), zone info (GZI)
-- Checksum always set to `U` (universal accept)
+### Development (Replit only, gitignored)
+- `server.js` — Node.js HTTP server for card preview (port 5000)
+- `preview/index.html` — Preview page with mock HA states using number/select/switch entities
+- `custom_components/` — Legacy, kept locally but excluded from GitHub
+- `src/` — Source files for development
+
+### Entity Types (from ha-audac)
+- `number.audac_zone_X_volume` — Zone volume (0-70 dB attenuation)
+- `select.audac_zone_X_source` — Zone source/routing selection
+- `switch.audac_zone_X_mute` — Zone mute toggle
 
 ## Tech Stack
-- Backend: Python (Home Assistant custom component)
-- Frontend: Vanilla JS Web Component
+- Frontend: Vanilla JS Web Component (no build step needed)
 - Preview: Node.js HTTP server (port 5000)
