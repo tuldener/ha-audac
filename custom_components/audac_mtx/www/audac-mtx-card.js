@@ -725,12 +725,232 @@ class AudacMTXSingleEditor extends HTMLElement {
 }
 
 
+class AudacMTXMoreInfo extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this._hass = null;
+    this._entityId = null;
+    this._expanded = {};
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this._render();
+  }
+
+  set entityId(eid) {
+    this._entityId = eid;
+    this._render();
+  }
+
+  _getZones() {
+    if (!this._hass) return [];
+    return mtxAutoDiscover(this._hass).map((entityId) => ({
+      entityId,
+      entity: this._hass.states[entityId],
+      name: this._hass.states[entityId].attributes.friendly_name || entityId,
+    }));
+  }
+
+  _toggleExpand(entityId) { this._expanded[entityId] = !this._expanded[entityId]; this._render(); }
+
+  _vol(z) { const v = z.entity.attributes.volume_level; return v == null ? 0 : Math.round(v * 100); }
+  _muted(z) { return z.entity.attributes.is_volume_muted === true; }
+  _src(z) { return z.entity.attributes.source || "---"; }
+  _srcList(z) { return z.entity.attributes.source_list || []; }
+
+  _render() {
+    if (!this.shadowRoot || !this._hass) return;
+    const zones = this._getZones();
+    const t = mtxThemeVars(mtxIsDark("auto"));
+    const activeCount = zones.filter(z => !this._muted(z) && this._vol(z) > 0).length;
+
+    this.shadowRoot.innerHTML = `
+      <style>
+        ${mtxBaseStyles(t)}
+        :host { display: block; padding: 0; }
+        .mtx-card { border: none; border-radius: 0; backdrop-filter: none; }
+        .zones-container { display: flex; flex-direction: column; gap: 8px; }
+        .zone-card {
+          background: ${t.cardBg}; border-radius: 18px; overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.25,0.1,0.25,1); border: 1px solid transparent;
+        }
+        .zone-card:hover { background: ${t.cardBgHover}; }
+        .zone-card.expanded {
+          border-color: ${t.isDark ? 'rgba(124,107,240,0.2)' : 'rgba(124,107,240,0.15)'};
+          background: ${t.isDark ? 'rgba(45,48,58,0.9)' : 'rgba(240,242,248,0.95)'};
+        }
+        .zone-card.muted .zone-vol-bg { opacity: 0 !important; }
+        .zone-card.off { opacity: 0.5; }
+        .zone-card.current { border-color: ${t.accent}; }
+        .zone-main { position: relative; cursor: pointer; padding: 14px 16px; overflow: hidden; }
+        .zone-vol-bg {
+          position: absolute; top: 0; left: 0; height: 100%;
+          background: linear-gradient(90deg, ${t.accentLight}, transparent);
+          transition: width 0.5s cubic-bezier(0.25,0.1,0.25,1); pointer-events: none;
+        }
+        .zone-content { position: relative; display: flex; align-items: center; gap: 12px; z-index: 1; }
+        .zone-icon {
+          width: 40px; height: 40px; border-radius: 12px;
+          background: ${t.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'};
+          display: flex; align-items: center; justify-content: center;
+          color: ${t.textSec}; transition: all 0.3s ease; flex-shrink: 0;
+        }
+        .zone-icon.active { background: linear-gradient(135deg, ${t.accent}, #a78bfa); color: white; }
+        .zone-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .zone-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .zone-detail { font-size: 11px; color: ${t.textSec}; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .zone-badge {
+          font-size: 13px; font-weight: 700; color: ${t.accent};
+          background: ${t.accentLight}; padding: 4px 10px; border-radius: 10px;
+          white-space: nowrap; min-width: 48px; text-align: center; flex-shrink: 0;
+        }
+        .zone-badge.muted { color: ${t.mutedColor}; background: ${t.isDark ? 'rgba(239,83,80,0.15)' : 'rgba(239,83,80,0.1)'}; font-size: 11px; }
+        .zone-chevron { color: ${t.textSec}; transition: transform 0.3s ease; flex-shrink: 0; }
+        .zone-chevron.rotated { transform: rotate(180deg); }
+        .zone-controls {
+          padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 14px;
+          animation: slideDown 0.3s cubic-bezier(0.25,0.1,0.25,1);
+        }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .ctrl-section { display: flex; flex-direction: column; gap: 8px; }
+        .vol-row { display: flex; align-items: center; gap: 10px; }
+        .tone-section { flex-direction: row; gap: 12px; }
+        .tone-ctrl {
+          flex: 1; display: flex; flex-direction: column; gap: 6px;
+          background: ${t.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'};
+          padding: 10px 12px; border-radius: 12px;
+        }
+        .tone-val { font-size: 18px; font-weight: 700; color: ${t.text}; }
+      </style>
+      <div class="mtx-card">
+        <div class="mtx-header">
+          <div class="mtx-header-icon">${mtxSvg('music', 24)}</div>
+          <div class="mtx-header-content">
+            <h2 class="mtx-header-title">Audac MTX</h2>
+            <span class="mtx-header-sub">${zones.length} Zone${zones.length !== 1 ? 'n' : ''}</span>
+          </div>
+          <div class="mtx-header-badge">${activeCount}/${zones.length}</div>
+        </div>
+        <div class="zones-container">
+          ${zones.length > 0 ? zones.map(z => this._renderZone(z, t)).join("") : `<div class="mtx-empty">${mtxSvg('music', 48)}<p>Keine Zonen gefunden</p></div>`}
+        </div>
+      </div>
+    `;
+    this._attachEvents();
+
+    if (this._entityId) {
+      const currentCard = this.shadowRoot.querySelector(`.zone-card[data-entity="${this._entityId}"]`);
+      if (currentCard && !this._expanded[this._entityId]) {
+        this._expanded[this._entityId] = true;
+        this._render();
+      }
+    }
+  }
+
+  _renderZone(z, t) {
+    const exp = this._expanded[z.entityId] || false;
+    const vol = this._vol(z);
+    const muted = this._muted(z);
+    const src = this._src(z);
+    const isOff = z.entity.state === "off";
+    const active = !isOff && !muted && vol > 0;
+    const isCurrent = z.entityId === this._entityId;
+    return `
+      <div class="zone-card ${exp ? 'expanded' : ''} ${muted ? 'muted' : ''} ${isOff ? 'off' : ''} ${isCurrent ? 'current' : ''}" data-entity="${z.entityId}">
+        <div class="zone-main" data-toggle="${z.entityId}">
+          <div class="zone-vol-bg" style="width: ${muted ? 0 : vol}%"></div>
+          <div class="zone-content">
+            <div class="zone-icon ${active ? 'active' : ''}">${mtxSvg(muted ? 'speakerMuted' : 'speaker')}</div>
+            <div class="zone-info">
+              <span class="zone-name">${z.name}</span>
+              <span class="zone-detail">${muted ? 'Stumm' : vol + '%'}${src !== '---' ? ' \u00b7 ' + src : ''}</span>
+            </div>
+            <div class="zone-badge ${muted ? 'muted' : ''}">${muted ? 'MUTE' : vol + '%'}</div>
+            <div class="zone-chevron ${exp ? 'rotated' : ''}">${mtxSvg('chevron', 20)}</div>
+          </div>
+        </div>
+        ${exp ? this._renderControls(z, t) : ''}
+      </div>
+    `;
+  }
+
+  _renderControls(z, t) {
+    const vol = this._vol(z);
+    const muted = this._muted(z);
+    const src = this._src(z);
+    const srcList = this._srcList(z);
+    const bass = z.entity.attributes.bass;
+    const treble = z.entity.attributes.treble;
+    const volDb = z.entity.attributes.volume_db;
+    return `
+      <div class="zone-controls">
+        <div class="ctrl-section">
+          <div class="mtx-label">${mtxSvg('speakerSmall', 16)} Lautst\u00e4rke</div>
+          <div class="vol-row">
+            <button class="mtx-btn ${muted ? 'active-mute' : ''}" data-mute="${z.entityId}" data-muted="${muted}">
+              ${mtxSvg(muted ? 'speakerMuted' : 'speaker', 18)}
+            </button>
+            <div class="mtx-slider-wrap">
+              <input type="range" class="mtx-slider" min="0" max="100" step="1" value="${vol}" data-volume="${z.entityId}" />
+              <div class="mtx-slider-fill" style="width: ${vol}%"></div>
+            </div>
+            <span class="mtx-val">${vol}%${volDb != null ? '<br><small>' + volDb + ' dB</small>' : ''}</span>
+          </div>
+        </div>
+        ${srcList.length > 0 ? `
+        <div class="ctrl-section">
+          <div class="mtx-label">${mtxSvg('source', 16)} Quelle</div>
+          <div class="mtx-source-grid">
+            ${srcList.map(s => `<button class="mtx-source-btn ${s === src ? 'active' : ''}" data-source="${z.entityId}" data-value="${s}">${s}</button>`).join("")}
+          </div>
+        </div>` : ''}
+        ${bass != null || treble != null ? `
+        <div class="ctrl-section tone-section">
+          ${bass != null ? `<div class="tone-ctrl"><div class="mtx-label">Bass</div><div class="tone-val">${bass > 0 ? '+' : ''}${bass} dB</div></div>` : ''}
+          ${treble != null ? `<div class="tone-ctrl"><div class="mtx-label">H\u00f6hen</div><div class="tone-val">${treble > 0 ? '+' : ''}${treble} dB</div></div>` : ''}
+        </div>` : ''}
+      </div>
+    `;
+  }
+
+  _attachEvents() {
+    const r = this.shadowRoot; if (!r) return;
+    r.querySelectorAll("[data-toggle]").forEach(el => {
+      el.addEventListener("click", e => {
+        if (e.target.closest("[data-mute]") || e.target.closest("[data-volume]") || e.target.closest("[data-source]")) return;
+        this._toggleExpand(el.dataset.toggle);
+      });
+    });
+    r.querySelectorAll("[data-mute]").forEach(el => {
+      el.addEventListener("click", e => { e.stopPropagation(); this._hass.callService("media_player", "volume_mute", { entity_id: el.dataset.mute, is_volume_muted: el.dataset.muted !== "true" }); });
+    });
+    r.querySelectorAll("[data-volume]").forEach(el => {
+      el.addEventListener("input", e => {
+        const v = parseInt(e.target.value);
+        const fill = e.target.closest('.mtx-slider-wrap')?.querySelector('.mtx-slider-fill');
+        if (fill) fill.style.width = v + '%';
+        const valSpan = e.target.closest('.vol-row')?.querySelector('.mtx-val');
+        if (valSpan) valSpan.innerHTML = v + '%';
+      });
+      el.addEventListener("change", e => { this._hass.callService("media_player", "volume_set", { entity_id: el.dataset.volume, volume_level: parseInt(e.target.value) / 100 }); });
+      el.addEventListener("click", e => e.stopPropagation());
+    });
+    r.querySelectorAll("[data-source]").forEach(el => {
+      el.addEventListener("click", e => { e.stopPropagation(); this._hass.callService("media_player", "select_source", { entity_id: el.dataset.source, source: el.dataset.value }); });
+    });
+  }
+}
+
+
 customElements.define("audac-mtx-card", AudacMTXCard);
 customElements.define("audac-mtx-card-editor", AudacMTXCardEditor);
 customElements.define("audac-mtx-volume-card", AudacMTXVolumeCard);
 customElements.define("audac-mtx-source-card", AudacMTXSourceCard);
 customElements.define("audac-mtx-bass-card", AudacMTXBassCard);
 customElements.define("audac-mtx-treble-card", AudacMTXTrebleCard);
+customElements.define("audac-mtx-more-info", AudacMTXMoreInfo);
 
 customElements.define("audac-mtx-volume-card-editor", class extends AudacMTXSingleEditor {});
 customElements.define("audac-mtx-source-card-editor", class extends AudacMTXSingleEditor {});
@@ -745,6 +965,49 @@ window.customCards.push(
   { type: "audac-mtx-bass-card", name: "Audac MTX Bass", description: "Bass-Regler f\u00fcr eine einzelne Zone", preview: true },
   { type: "audac-mtx-treble-card", name: "Audac MTX H\u00f6hen", description: "H\u00f6hen-Regler f\u00fcr eine einzelne Zone", preview: true },
 );
+
+(function() {
+  const patchMoreInfo = () => {
+    const moreInfoEl = document.querySelector("home-assistant")
+      ?.shadowRoot?.querySelector("ha-more-info-dialog");
+    if (!moreInfoEl) return;
+
+    const origUpdate = moreInfoEl.updated || moreInfoEl.requestUpdate;
+    if (moreInfoEl._audacPatched) return;
+    moreInfoEl._audacPatched = true;
+
+    const observer = new MutationObserver(() => {
+      const entityId = moreInfoEl.entityId || moreInfoEl._entityId;
+      if (!entityId || !entityId.includes("audac_mtx")) return;
+
+      const content = moreInfoEl.shadowRoot?.querySelector(".content") ||
+                      moreInfoEl.shadowRoot?.querySelector("ha-more-info-info") ||
+                      moreInfoEl.shadowRoot?.querySelector("[slot='content']");
+      if (!content) return;
+
+      let mtxInfo = content.querySelector("audac-mtx-more-info");
+      if (mtxInfo) {
+        mtxInfo.hass = moreInfoEl.hass;
+        mtxInfo.entityId = entityId;
+        return;
+      }
+
+      mtxInfo = document.createElement("audac-mtx-more-info");
+      mtxInfo.hass = moreInfoEl.hass;
+      mtxInfo.entityId = entityId;
+      content.innerHTML = "";
+      content.appendChild(mtxInfo);
+    });
+
+    observer.observe(moreInfoEl.shadowRoot || moreInfoEl, { childList: true, subtree: true });
+  };
+
+  if (document.readyState === "complete") {
+    setTimeout(patchMoreInfo, 2000);
+  } else {
+    window.addEventListener("load", () => setTimeout(patchMoreInfo, 2000));
+  }
+})();
 
 console.info(
   `%c AUDAC-MTX-CARD %c v${CARD_VERSION} `,
