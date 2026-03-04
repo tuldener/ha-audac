@@ -6,23 +6,15 @@ from typing import Any
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, INPUT_NAMES, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, MODEL_NAMES
+from .const import DOMAIN, INPUT_NAMES, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, MODEL_NAMES, get_source_names
 from .coordinator import AudacMTXCoordinator
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _get_source_names(entry: ConfigEntry) -> dict[int, str]:
-    options = entry.options
-    result = {}
-    for input_id, default_name in INPUT_NAMES.items():
-        if options.get(f"source_{input_id}_visible", True):
-            result[input_id] = options.get(f"source_{input_id}_name", default_name)
-    return result
 
 
 async def async_setup_entry(
@@ -44,6 +36,7 @@ async def async_setup_entry(
 class AudacMTXSourceSelect(CoordinatorEntity[AudacMTXCoordinator], SelectEntity):
     _attr_has_entity_name = True
     _attr_icon = "mdi:audio-input-rca"
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, coordinator: AudacMTXCoordinator, zone: int, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
@@ -52,7 +45,7 @@ class AudacMTXSourceSelect(CoordinatorEntity[AudacMTXCoordinator], SelectEntity)
         zone_name = entry.options.get(f"zone_{zone}_name", f"Zone {zone}")
         self._attr_unique_id = f"{entry.entry_id}_zone_{zone}_source"
         self._attr_name = f"{zone_name} Source"
-        self._source_names = _get_source_names(entry)
+        self._source_names = get_source_names(entry.options)
         self._attr_options = list(self._source_names.values())
         model = entry.data.get(CONF_MODEL, MODEL_MTX88)
         self._attr_device_info = {

@@ -6,6 +6,7 @@ from typing import Any
 
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -40,6 +41,7 @@ class AudacMTXVolumeNumber(CoordinatorEntity[AudacMTXCoordinator], NumberEntity)
     _attr_native_step = 1
     _attr_mode = NumberMode.SLIDER
     _attr_native_unit_of_measurement = "%"
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, coordinator: AudacMTXCoordinator, zone: int, entry: ConfigEntry) -> None:
         super().__init__(coordinator)

@@ -11,28 +11,15 @@ from homeassistant.components.media_player import (
     MediaPlayerState,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, INPUT_NAMES, BASS_TREBLE_MAP, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, MODEL_NAMES
+from .const import DOMAIN, INPUT_NAMES, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, MODEL_NAMES, get_source_names
 from .coordinator import AudacMTXCoordinator
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _get_source_names(entry: ConfigEntry) -> dict[int, str]:
-    options = entry.options
-    result = {}
-    for input_id, default_name in INPUT_NAMES.items():
-        if options.get(f"source_{input_id}_visible", True):
-            result[input_id] = options.get(f"source_{input_id}_name", default_name)
-    return result
-
-
-def _get_zone_name(entry: ConfigEntry, zone: int) -> str:
-    return entry.options.get(f"zone_{zone}_name", f"Zone {zone}")
 
 
 async def async_setup_entry(
@@ -82,7 +69,7 @@ class AudacMTXZone(CoordinatorEntity[AudacMTXCoordinator], MediaPlayerEntity):
         self._zone = zone
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_zone_{zone}"
-        self._attr_name = _get_zone_name(entry, zone)
+        self._attr_name = entry.options.get(f"zone_{zone}_name", f"Zone {zone}")
         model = entry.data.get(CONF_MODEL, MODEL_MTX88)
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
@@ -90,7 +77,7 @@ class AudacMTXZone(CoordinatorEntity[AudacMTXCoordinator], MediaPlayerEntity):
             "manufacturer": "Audac",
             "model": MODEL_NAMES.get(model, "MTX"),
         }
-        self._source_names = _get_source_names(entry)
+        self._source_names = get_source_names(entry.options)
         self._attr_source_list = list(self._source_names.values())
 
     @property

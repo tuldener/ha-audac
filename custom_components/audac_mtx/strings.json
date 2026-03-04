@@ -17,6 +17,9 @@
     }
   },
   "options": {
+    "error": {
+      "empty_name": "Names cannot be empty."
+    },
     "step": {
       "init": {
         "title": "Audac MTX Configuration",

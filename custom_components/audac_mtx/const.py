@@ -53,3 +53,12 @@ BASS_TREBLE_MAP = {
 
 VOLUME_MIN = 0
 VOLUME_MAX = 70
+
+
+def get_source_names(options: dict, visible_only: bool = True) -> dict[int, str]:
+    result = {}
+    for input_id, default_name in INPUT_NAMES.items():
+        if visible_only and not options.get(f"source_{input_id}_visible", True):
+            continue
+        result[input_id] = options.get(f"source_{input_id}_name", default_name)
+    return result

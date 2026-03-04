@@ -9,7 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.const import Platform
 
-from .const import DOMAIN, CARD_URL_PATH, CARD_FILENAME, CONF_MODEL, MODEL_MTX48, MODEL_MTX88
+from .const import DOMAIN, CARD_URL_PATH, CARD_FILENAME, CONF_MODEL, MODEL_MTX48, MODEL_MTX88, MODEL_ZONES
 from .coordinator import AudacMTXCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -78,13 +78,6 @@ async def _register_card(hass: HomeAssistant) -> None:
     )
 
     try:
-        from homeassistant.components.frontend import add_extra_js_url
-        add_extra_js_url(hass, CARD_URL_PATH)
-        _LOGGER.info("Registered Audac MTX card via add_extra_js_url: %s", CARD_URL_PATH)
-    except Exception as err:
-        _LOGGER.debug("add_extra_js_url not available: %s", err)
-
-    try:
         if hass.data.get("lovelace_resources"):
             from homeassistant.components.lovelace.resources import ResourceStorageCollection
             resources: ResourceStorageCollection = hass.data["lovelace_resources"]
@@ -97,13 +90,17 @@ async def _register_card(hass: HomeAssistant) -> None:
                     {"res_type": "module", "url": CARD_URL_PATH}
                 )
                 _LOGGER.info("Registered Audac MTX card as Lovelace resource: %s", CARD_URL_PATH)
+            else:
+                _LOGGER.debug("Audac MTX card already registered as Lovelace resource")
+        else:
+            from homeassistant.components.frontend import add_extra_js_url
+            add_extra_js_url(hass, CARD_URL_PATH)
+            _LOGGER.info("Registered Audac MTX card via add_extra_js_url: %s", CARD_URL_PATH)
     except Exception as err:
-        _LOGGER.debug("Could not register Lovelace resource: %s", err)
-
-    _LOGGER.info(
-        "Audac MTX card available at: %s — add as Lovelace resource (type: module) if not auto-detected",
-        CARD_URL_PATH,
-    )
+        _LOGGER.warning(
+            "Could not auto-register Audac MTX card. Add manually as Lovelace resource (type: module): %s — %s",
+            CARD_URL_PATH, err,
+        )
 
 
 async def _async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:

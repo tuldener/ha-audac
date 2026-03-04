@@ -6,6 +6,7 @@ from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -35,6 +36,7 @@ async def async_setup_entry(
 class AudacMTXMuteSwitch(CoordinatorEntity[AudacMTXCoordinator], SwitchEntity):
     _attr_has_entity_name = True
     _attr_icon = "mdi:volume-off"
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, coordinator: AudacMTXCoordinator, zone: int, entry: ConfigEntry) -> None:
         super().__init__(coordinator)

@@ -86,7 +86,7 @@ class MTXClient:
 
     async def _read_response(self, expected_cmds: set[str], timeout: float = 2.0) -> str:
         buffer = b""
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         deadline = loop.time() + timeout
 
         while True:

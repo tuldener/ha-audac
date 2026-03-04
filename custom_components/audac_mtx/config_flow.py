@@ -86,8 +86,20 @@ class AudacMTXOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
+        errors: dict[str, str] = {}
+
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            validated = {}
+            for key, value in user_input.items():
+                if isinstance(value, str):
+                    value = value.strip()
+                    if key.endswith("_name") and not value:
+                        errors["base"] = "empty_name"
+                        break
+                validated[key] = value
+
+            if not errors:
+                return self.async_create_entry(title="", data=validated)
 
         model = self._config_entry.data.get(CONF_MODEL, MODEL_MTX88)
         zones_count = MODEL_ZONES.get(model, 8)
@@ -110,4 +122,5 @@ class AudacMTXOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(schema_dict),
+            errors=errors,
         )
