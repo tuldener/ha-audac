@@ -78,12 +78,13 @@ class MTXClient:
         return f"#|X001|{self._source}|{command}|{argument}|U|\r\n".encode()
 
     @staticmethod
-    def _expected_response_cmd(command: str) -> str:
+    def _expected_response_cmds(command: str) -> set[str]:
+        result = {command}
         if command.startswith("G"):
-            return command[1:]
-        return command
+            result.add(command[1:])
+        return result
 
-    async def _read_response(self, expected_cmd: str, timeout: float = 2.0) -> str:
+    async def _read_response(self, expected_cmds: set[str], timeout: float = 2.0) -> str:
         lines_read = 0
         while lines_read < 20:
             try:
@@ -93,6 +94,7 @@ class MTXClient:
                 )
                 line = line_bytes.decode(errors="replace").strip()
                 lines_read += 1
+                _LOGGER.debug("MTX raw recv: %s", line[:120] if line else "(empty)")
 
                 if not line:
                     if line_bytes == b"":
@@ -110,12 +112,12 @@ class MTXClient:
                     continue
 
                 resp_cmd = parts[3].strip()
-                if resp_cmd == expected_cmd:
+                if resp_cmd in expected_cmds:
                     return line
 
                 _LOGGER.debug(
-                    "Skipping mismatched response: got '%s', expected '%s': %s",
-                    resp_cmd, expected_cmd, line[:80],
+                    "Skipping mismatched response: got '%s', expected one of %s: %s",
+                    resp_cmd, expected_cmds, line[:80],
                 )
 
             except asyncio.TimeoutError:
@@ -124,7 +126,7 @@ class MTXClient:
         return ""
 
     async def _send_and_receive(self, command: str, argument: str = "0") -> str:
-        expected_cmd = self._expected_response_cmd(command)
+        expected_cmds = self._expected_response_cmds(command)
 
         async with self._lock:
             for attempt in range(MAX_RETRIES + 1):
@@ -141,7 +143,7 @@ class MTXClient:
                     self._writer.write(raw)
                     await self._writer.drain()
 
-                    response = await self._read_response(expected_cmd, timeout=2.0)
+                    response = await self._read_response(expected_cmds, timeout=2.0)
 
                     if not response:
                         if attempt < MAX_RETRIES:
