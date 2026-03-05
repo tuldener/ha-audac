@@ -13,7 +13,7 @@ from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, MODEL_ZONES
 from .mtx_client import MTXClient
 
 _LOGGER = logging.getLogger(__name__)
-SCAN_INTERVAL = timedelta(seconds=10)
+SCAN_INTERVAL = timedelta(seconds=15)
 
 
 class AudacMTXCoordinator(DataUpdateCoordinator[dict[int, dict[str, Any]]]):
