@@ -1,4 +1,4 @@
-const CARD_VERSION = "1.7.3";
+const CARD_VERSION = "1.7.4";
 
 // MUST be at top: HA reads this synchronously to know which custom elements to wait for
 window.customCards = window.customCards || [];
@@ -1329,6 +1329,16 @@ _define("audac-mtx-volume-card-editor", class extends AudacMTXSingleEditor {});
 _define("audac-mtx-source-card-editor", class extends AudacMTXSingleEditor {});
 _define("audac-mtx-bass-card-editor", class extends AudacMTXSingleEditor {});
 _define("audac-mtx-treble-card-editor", class extends AudacMTXSingleEditor {});
+
+// Tell Lovelace to re-render all cards now that our elements are defined.
+// This is the standard pattern used by popular HACS cards (bubble-card, mushroom, etc.)
+// to fix "Custom element doesn't exist" on first load.
+Promise.all([
+  customElements.whenDefined("audac-mtx-card"),
+  customElements.whenDefined("audac-mtx-more-info"),
+]).then(() => {
+  window.dispatchEvent(new Event("ll-rebuild"));
+});
 
 window.customCards = window.customCards || [];
 window.customCards.push(
