@@ -51,6 +51,7 @@ class MTXClient:
                 timeout=3,
             )
             self._consecutive_failures = 0
+            self._bulk_supported = None
             _LOGGER.debug("Connected to MTX at %s:%s", self._host, self._port)
             await asyncio.sleep(0.2)
         except Exception as err:
