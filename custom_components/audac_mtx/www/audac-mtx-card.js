@@ -1,4 +1,4 @@
-const CARD_VERSION = "1.2.0";
+const CARD_VERSION = "1.4.0";
 
 /** Escapes HTML special characters to prevent XSS when injecting user-defined strings. */
 function mtxEscape(str) {
@@ -8,6 +8,16 @@ function mtxEscape(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+
+/** Converts a hex color (#rrggbb) to an "r, g, b" string for use in rgba(). */
+function mtxHexToRgb(hex) {
+  const c = hex.replace("#", "");
+  const r = parseInt(c.substring(0, 2), 16);
+  const g = parseInt(c.substring(2, 4), 16);
+  const b = parseInt(c.substring(4, 6), 16);
+  return `${r}, ${g}, ${b}`;
 }
 
 /** Returns a debounced version of fn that only fires after `wait` ms of silence. */
@@ -31,15 +41,20 @@ const MTX_ICONS = {
   equalizer: '<path d="M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z"/>',
 };
 
-function mtxThemeVars(isDark) {
+function mtxThemeVars(isDark, accentHex) {
+  const accent = accentHex || "#7c6bf0";
+  const rgb = mtxHexToRgb(accent);
   return {
     bg: isDark ? "rgba(30, 33, 40, 0.95)" : "rgba(255, 255, 255, 0.95)",
     cardBg: isDark ? "rgba(40, 44, 52, 0.8)" : "rgba(245, 247, 250, 0.8)",
     cardBgHover: isDark ? "rgba(50, 55, 65, 0.9)" : "rgba(235, 238, 245, 0.9)",
     text: isDark ? "#e4e6eb" : "#1a1c20",
     textSec: isDark ? "rgba(228, 230, 235, 0.6)" : "rgba(26, 28, 32, 0.5)",
-    accent: "#7c6bf0",
-    accentLight: isDark ? "rgba(124, 107, 240, 0.15)" : "rgba(124, 107, 240, 0.1)",
+    accent,
+    accentLight: isDark ? `rgba(${rgb}, 0.15)` : `rgba(${rgb}, 0.1)`,
+    accentMid: isDark ? `rgba(${rgb}, 0.25)` : `rgba(${rgb}, 0.18)`,
+    accentShadow: `rgba(${rgb}, 0.4)`,
+    accentSecond: accentHex ? accent : "#a78bfa",
     border: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
     mutedColor: "#ef5350",
     isDark,
@@ -95,7 +110,7 @@ function mtxBaseStyles(t) {
     }
     .mtx-slider-fill {
       position: absolute; top: 0; left: 0; height: 100%;
-      background: linear-gradient(90deg, ${t.accentLight}, ${t.isDark ? 'rgba(124,107,240,0.25)' : 'rgba(124,107,240,0.18)'});
+      background: linear-gradient(90deg, ${t.accentLight}, ${t.accentMid});
       border-radius: 10px; transition: width 0.1s ease; pointer-events: none;
     }
     .mtx-slider {
@@ -105,13 +120,13 @@ function mtxBaseStyles(t) {
     }
     .mtx-slider::-webkit-slider-thumb {
       -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
-      background: ${t.accent}; box-shadow: 0 2px 6px rgba(124,107,240,0.4);
+      background: ${t.accent}; box-shadow: 0 2px 6px ${t.accentShadow};
       cursor: pointer; transition: transform 0.15s ease;
     }
     .mtx-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
     .mtx-slider::-moz-range-thumb {
       width: 16px; height: 16px; border-radius: 50%;
-      background: ${t.accent}; box-shadow: 0 2px 6px rgba(124,107,240,0.4); cursor: pointer; border: none;
+      background: ${t.accent}; box-shadow: 0 2px 6px ${t.accentShadow}; cursor: pointer; border: none;
     }
     .mtx-val {
       font-size: 13px; font-weight: 700; color: ${t.accent};
@@ -181,12 +196,12 @@ class AudacMTXCard extends HTMLElement {
   }
 
   static getStubConfig() {
-    return { title: "Audac MTX", zones: [], show_bass_treble: true, show_source: true, theme: "auto" };
+    return { title: "Audac MTX", zones: [], show_bass_treble: true, show_source: true, theme: "auto", accent_color: "" };
   }
 
   setConfig(config) {
     if (!config) throw new Error("Invalid configuration");
-    this._config = { title: "Audac MTX", zones: [], show_bass_treble: true, show_source: true, theme: "auto", ...config };
+    this._config = { title: "Audac MTX", zones: [], show_bass_treble: true, show_source: true, theme: "auto", accent_color: "", ...config };
     this._render();
   }
 
@@ -212,7 +227,16 @@ class AudacMTXCard extends HTMLElement {
     }));
   }
 
-  _toggleExpand(entityId) { this._expanded[entityId] = !this._expanded[entityId]; this._render(); }
+  _toggleExpand(entityId) {
+    const wasExpanded = this._expanded[entityId];
+    this._expanded[entityId] = !wasExpanded;
+    // Immediately refresh entity state when opening a zone
+    if (!wasExpanded && this._hass) {
+      this._hass.callService("homeassistant", "update_entity", { entity_id: entityId })
+        .catch(() => {});
+    }
+    this._render();
+  }
 
   async _callService(domain, service, data) { if (this._hass) await this._hass.callService(domain, service, data); }
 
@@ -224,7 +248,7 @@ class AudacMTXCard extends HTMLElement {
   _render() {
     if (!this.shadowRoot) return;
     const zones = this._getZones();
-    const t = mtxThemeVars(mtxIsDark(this._config.theme));
+    const t = mtxThemeVars(mtxIsDark(this._config.theme), this._config.accent_color || "");
     const activeCount = zones.filter(z => !this._muted(z) && this._vol(z) > 0).length;
 
     this.shadowRoot.innerHTML = `
@@ -255,7 +279,7 @@ class AudacMTXCard extends HTMLElement {
           display: flex; align-items: center; justify-content: center;
           color: ${t.textSec}; transition: all 0.3s ease; flex-shrink: 0;
         }
-        .zone-icon.active { background: linear-gradient(135deg, ${t.accent}, #a78bfa); color: white; }
+        .zone-icon.active { background: linear-gradient(135deg, ${t.accent}, ${t.accentSecond}); color: white; }
         .zone-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
         .zone-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .zone-detail { font-size: 11px; color: ${t.textSec}; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -415,6 +439,15 @@ class AudacMTXCardEditor extends HTMLElement {
       </style>
       <div class="editor">
         <div class="field"><label>Titel</label><input type="text" id="title" value="${this._config.title || 'Audac MTX'}" /></div>
+        <div class="field">
+          <label>Akzentfarbe</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="color" id="accent_color" value="${this._config.accent_color || '#7c6bf0'}" style="width:48px;height:36px;padding:2px;border-radius:8px;border:1px solid var(--divider-color,#ddd);cursor:pointer;" />
+            <input type="text" id="accent_color_hex" value="${this._config.accent_color || '#7c6bf0'}" placeholder="#7c6bf0" style="flex:1;" />
+            <button id="accent_reset" style="padding:6px 10px;border-radius:8px;border:1px solid var(--divider-color,#ddd);background:transparent;cursor:pointer;font-size:12px;white-space:nowrap;">↺ Standard</button>
+          </div>
+          <div class="hint">Standard: #7c6bf0 (Violett)</div>
+        </div>
         <div class="field"><label>Design</label>
           <select id="theme">
             <option value="auto" ${this._config.theme === 'auto' ? 'selected' : ''}>Automatisch</option>
@@ -431,6 +464,29 @@ class AudacMTXCardEditor extends HTMLElement {
       </div>
     `;
     this.shadowRoot.getElementById("title").addEventListener("change", e => { this._config.title = e.target.value; this._fire(); });
+    const colorPicker = this.shadowRoot.getElementById("accent_color");
+    const colorHex = this.shadowRoot.getElementById("accent_color_hex");
+    const colorReset = this.shadowRoot.getElementById("accent_reset");
+    colorPicker.addEventListener("input", e => {
+      colorHex.value = e.target.value;
+      this._config.accent_color = e.target.value;
+      this._fire();
+    });
+    colorHex.addEventListener("change", e => {
+      const v = e.target.value.trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+        colorPicker.value = v;
+        this._config.accent_color = v;
+        this._fire();
+      }
+    });
+    colorReset.addEventListener("click", () => {
+      const def = "#7c6bf0";
+      colorPicker.value = def;
+      colorHex.value = def;
+      this._config.accent_color = "";
+      this._fire();
+    });
     this.shadowRoot.getElementById("theme").addEventListener("change", e => { this._config.theme = e.target.value; this._fire(); });
     this.shadowRoot.getElementById("show_source").addEventListener("change", e => { this._config.show_source = e.target.checked; this._fire(); });
     this.shadowRoot.getElementById("show_bass_treble").addEventListener("change", e => { this._config.show_bass_treble = e.target.checked; this._fire(); });
@@ -822,7 +878,7 @@ class AudacMTXMoreInfo extends HTMLElement {
           display: flex; align-items: center; justify-content: center;
           color: ${t.textSec}; transition: all 0.3s ease; flex-shrink: 0;
         }
-        .zone-icon.active { background: linear-gradient(135deg, ${t.accent}, #a78bfa); color: white; }
+        .zone-icon.active { background: linear-gradient(135deg, ${t.accent}, ${t.accentSecond}); color: white; }
         .zone-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
         .zone-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .zone-detail { font-size: 11px; color: ${t.textSec}; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1039,8 +1095,9 @@ window.customCards.push(
   }
 })();
 
+const _lastAccent = "#7c6bf0"; // updated at runtime
 console.info(
   `%c AUDAC-MTX-CARD %c v${CARD_VERSION} `,
-  "color: white; background: #7c6bf0; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;",
-  "color: #7c6bf0; background: #e8e5fc; font-weight: 700; padding: 2px 6px; border-radius: 0 4px 4px 0;"
+  `color: white; background: ${_lastAccent || "#7c6bf0"}; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;`,
+  `color: ${_lastAccent || "#7c6bf0"}; background: #e8e5fc; font-weight: 700; padding: 2px 6px; border-radius: 0 4px 4px 0;`
 );
