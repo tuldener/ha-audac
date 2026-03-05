@@ -944,18 +944,20 @@ class AudacMTXMoreInfo extends HTMLElement {
 }
 
 
-customElements.define("audac-mtx-card", AudacMTXCard);
-customElements.define("audac-mtx-card-editor", AudacMTXCardEditor);
-customElements.define("audac-mtx-volume-card", AudacMTXVolumeCard);
-customElements.define("audac-mtx-source-card", AudacMTXSourceCard);
-customElements.define("audac-mtx-bass-card", AudacMTXBassCard);
-customElements.define("audac-mtx-treble-card", AudacMTXTrebleCard);
-customElements.define("audac-mtx-more-info", AudacMTXMoreInfo);
+const _define = (name, cls) => { if (!customElements.get(name)) customElements.define(name, cls); };
 
-customElements.define("audac-mtx-volume-card-editor", class extends AudacMTXSingleEditor {});
-customElements.define("audac-mtx-source-card-editor", class extends AudacMTXSingleEditor {});
-customElements.define("audac-mtx-bass-card-editor", class extends AudacMTXSingleEditor {});
-customElements.define("audac-mtx-treble-card-editor", class extends AudacMTXSingleEditor {});
+_define("audac-mtx-card", AudacMTXCard);
+_define("audac-mtx-card-editor", AudacMTXCardEditor);
+_define("audac-mtx-volume-card", AudacMTXVolumeCard);
+_define("audac-mtx-source-card", AudacMTXSourceCard);
+_define("audac-mtx-bass-card", AudacMTXBassCard);
+_define("audac-mtx-treble-card", AudacMTXTrebleCard);
+_define("audac-mtx-more-info", AudacMTXMoreInfo);
+
+_define("audac-mtx-volume-card-editor", class extends AudacMTXSingleEditor {});
+_define("audac-mtx-source-card-editor", class extends AudacMTXSingleEditor {});
+_define("audac-mtx-bass-card-editor", class extends AudacMTXSingleEditor {});
+_define("audac-mtx-treble-card-editor", class extends AudacMTXSingleEditor {});
 
 window.customCards = window.customCards || [];
 window.customCards.push(
