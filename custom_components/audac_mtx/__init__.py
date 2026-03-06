@@ -89,41 +89,62 @@ async def _register_lovelace_resource(hass: HomeAssistant) -> None:
 
     This is the same mechanism HACS uses and avoids the race condition
     where HA renders Lovelace before add_extra_js_url's dynamic import() resolves.
+    Uses multiple strategies to find the ResourceStorageCollection across HA versions.
     """
-    # Try to find the ResourceStorageCollection in hass.data
-    # The key changed across HA versions - try all known variants
+    # Strategy 1: Direct import of lovelace resources module (works in HA 2023-2026)
     resource_collection = None
-    for key in ("lovelace_resources", "lovelace", "frontend_extra_module_url"):
-        candidate = hass.data.get(key)
-        if candidate is None:
-            continue
-        # lovelace_resources key holds the collection directly
-        if hasattr(candidate, "async_items") and hasattr(candidate, "async_create_item"):
-            resource_collection = candidate
-            _LOGGER.debug("Found Lovelace resource collection under key: %s", key)
-            break
-        # lovelace key may hold a dict with a resources sub-key
-        if isinstance(candidate, dict) and hasattr(candidate.get("resources"), "async_items"):
-            resource_collection = candidate["resources"]
-            _LOGGER.debug("Found Lovelace resource collection under key: %s/resources", key)
-            break
+    try:
+        from homeassistant.components.lovelace.resources import ResourceStorageCollection
+        # In HA 2024+, the collection is stored under hass.data["lovelace"]["resources"]
+        # In HA 2023, it may be under hass.data["lovelace_resources"]
+        lovelace_data = hass.data.get("lovelace")
+        if isinstance(lovelace_data, dict):
+            candidate = lovelace_data.get("resources")
+            if isinstance(candidate, ResourceStorageCollection):
+                resource_collection = candidate
+                _LOGGER.debug("Found ResourceStorageCollection via hass.data['lovelace']['resources']")
 
-    if resource_collection is None:
-        # Fallback: look through all lovelace data values
-        try:
-            lovelace_data = hass.data.get("lovelace")
+        if resource_collection is None:
+            # Try direct key (older HA versions)
+            candidate = hass.data.get("lovelace_resources")
+            if isinstance(candidate, ResourceStorageCollection):
+                resource_collection = candidate
+                _LOGGER.debug("Found ResourceStorageCollection via hass.data['lovelace_resources']")
+
+        if resource_collection is None:
+            # Scan all lovelace data values
             if isinstance(lovelace_data, dict):
-                for v in lovelace_data.values():
-                    if hasattr(v, "async_items") and hasattr(v, "async_create_item"):
-                        resource_collection = v
+                for key, val in lovelace_data.items():
+                    if isinstance(val, ResourceStorageCollection):
+                        resource_collection = val
+                        _LOGGER.debug("Found ResourceStorageCollection via hass.data['lovelace']['%s']", key)
                         break
+
+    except ImportError as err:
+        _LOGGER.debug("Could not import ResourceStorageCollection: %s", err)
+
+    # Strategy 2: Ensure lovelace is loaded and retry
+    if resource_collection is None:
+        try:
+            await hass.async_add_executor_job(
+                lambda: None  # just yield to event loop
+            )
+            # Try to load the lovelace component if not loaded yet
+            if "lovelace" not in hass.data:
+                _LOGGER.debug("Lovelace not yet loaded, scheduling resource registration after startup")
+                hass.bus.async_listen_once(
+                    "homeassistant_started",
+                    lambda _: hass.async_create_task(_register_lovelace_resource(hass))
+                )
+                return
         except Exception as err:
-            _LOGGER.debug("Could not find lovelace resource collection via fallback: %s", err)
+            _LOGGER.debug("Strategy 2 failed: %s", err)
 
     if resource_collection is None:
         _LOGGER.warning(
             "Audac MTX: Could not find Lovelace resource collection. "
-            "Please add the card manually: %s (type: module)",
+            "Please add the card manually via Settings -> Dashboards -> Resources: "
+            "URL=%s, Type=JavaScript Module",
             CARD_URL_VERSIONED,
         )
         return
