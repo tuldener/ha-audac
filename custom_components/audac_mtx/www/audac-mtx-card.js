@@ -1,4 +1,4 @@
-const CARD_VERSION = "1.7.4";
+const CARD_VERSION = "2.0.0";
 
 // MUST be at top: HA reads this synchronously to know which custom elements to wait for
 window.customCards = window.customCards || [];
@@ -101,7 +101,12 @@ function mtxSvg(icon, size = 22) {
 function mtxAutoDiscover(hass) {
   if (!hass) return [];
   return Object.keys(hass.states)
-    .filter((id) => id.startsWith("media_player.") && id.includes("audac_mtx"))
+    .filter((id) => {
+      if (!id.startsWith("media_player.") || !id.includes("audac_mtx")) return false;
+      // Respect zone_visible attribute (set by integration when zone is hidden)
+      const visible = hass.states[id]?.attributes?.zone_visible;
+      return visible !== false;
+    })
     .sort();
 }
 
@@ -275,6 +280,8 @@ class AudacMTXCard extends HTMLElement {
         const entityId = typeof z === "string" ? z : z.entity;
         const entity = this._hass.states[entityId];
         if (!entity) return null;
+        // Respect zone_visible attribute
+        if (entity.attributes?.zone_visible === false) return null;
         const rawName = (typeof z === "object" && z.name) || entity.attributes.friendly_name || entityId;
         return { entityId, entity, name: rawName, _shortName: mtxShortName(rawName, this._config.title) };
       }).filter(Boolean);

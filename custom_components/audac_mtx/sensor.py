@@ -28,9 +28,9 @@ async def async_setup_entry(
 
     entities = []
     for zone in range(1, zones_count + 1):
-        if entry.options.get(f"zone_{zone}_visible", True):
-            entities.append(AudacMTXSourceSensor(coordinator, zone, entry))
+        entities.append(AudacMTXSourceSensor(coordinator, zone, entry))
     async_add_entities(entities)
+    await _async_update_zone_visibility(hass, entry, zones_count, DOMAIN)
 
 
 class AudacMTXSourceSensor(AudacMTXBaseEntity, SensorEntity):

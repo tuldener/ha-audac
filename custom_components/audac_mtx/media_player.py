@@ -33,9 +33,9 @@ async def async_setup_entry(
 
     entities = []
     for zone in range(1, zones_count + 1):
-        if entry.options.get(f"zone_{zone}_visible", True):
-            entities.append(AudacMTXZone(coordinator, zone, entry))
+        entities.append(AudacMTXZone(coordinator, zone, entry))
     async_add_entities(entities)
+    await _async_update_zone_visibility(hass, entry, zones_count, DOMAIN)
 
     platform = entity_platform.async_get_current_platform()
     platform.async_register_entity_service(
@@ -121,6 +121,7 @@ class AudacMTXZone(AudacMTXBaseEntity, MediaPlayerEntity):
             "treble_raw": data.get("treble", 7),
             "volume_db": data.get("volume_db", -70),
             "routing": data.get("routing", 0),
+            "zone_visible": self._entry.options.get(f"zone_{self._zone}_visible", True),
         }
 
     async def async_set_volume_level(self, volume: float) -> None:
