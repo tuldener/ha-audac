@@ -25,6 +25,8 @@
         "title": "Audac MTX Konfiguration",
         "description": "Zonennamen, Quellennamen und Sichtbarkeit konfigurieren.",
         "data": {
+          "global_bass_visible": "Bass anzeigen",
+          "global_treble_visible": "Hoehen anzeigen",
           "zone_1_name": "Zone 1 Name",
           "zone_1_visible": "Zone 1 Anzeigen",
           "zone_2_name": "Zone 2 Name",

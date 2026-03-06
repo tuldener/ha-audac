@@ -123,6 +123,8 @@ class AudacMTXZone(AudacMTXBaseEntity, MediaPlayerEntity):
             "volume_db": data.get("volume_db", -70),
             "routing": data.get("routing", 0),
             "zone_visible": self._entry.options.get(f"zone_{self._zone}_visible", True),
+            "bass_visible": self._entry.options.get("global_bass_visible", True),
+            "treble_visible": self._entry.options.get("global_treble_visible", True),
         }
 
     async def async_set_volume_level(self, volume: float) -> None:

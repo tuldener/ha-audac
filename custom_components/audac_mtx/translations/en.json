@@ -25,6 +25,8 @@
         "title": "Audac MTX Configuration",
         "description": "Configure zone and source names and visibility.",
         "data": {
+          "global_bass_visible": "Show Bass",
+          "global_treble_visible": "Show Treble",
           "zone_1_name": "Zone 1 Name",
           "zone_1_visible": "Zone 1 Show",
           "zone_2_name": "Zone 2 Name",

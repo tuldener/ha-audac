@@ -574,7 +574,7 @@ class AudacMTXCard extends HTMLElement {
         </div>` : ''}
         ${this._config.show_bass_treble ? `
         <div class="ctrl-section tone-section">
-          ${bass != null ? `
+          ${bass != null && z.entity.attributes.bass_visible !== false ? `
           <div class="tone-ctrl">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <div class="mtx-label">Bass</div>
@@ -585,7 +585,7 @@ class AudacMTXCard extends HTMLElement {
               <div class="mtx-slider-fill" style="width:${(bassRaw / 14) * 100}%;"></div>
             </div>
           </div>` : ''}
-          ${treble != null ? `
+          ${treble != null && z.entity.attributes.treble_visible !== false ? `
           <div class="tone-ctrl">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <div class="mtx-label">H\u00f6hen</div>
