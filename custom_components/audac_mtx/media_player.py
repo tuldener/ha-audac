@@ -76,6 +76,21 @@ class AudacMTXZone(AudacMTXBaseEntity, MediaPlayerEntity):
         self._source_names = get_source_names(entry.options)
         self._attr_source_list = list(self._source_names.values())
 
+    def _get_slave_zones(self) -> list[int]:
+        """Return zone numbers that are linked/slaved to this master zone."""
+        from .const import MODEL_MTX88, MODEL_ZONES, CONF_MODEL
+        model = self._entry.data.get(CONF_MODEL, MODEL_MTX88)
+        zones_count = self._entry.data.get("zones", MODEL_ZONES.get(model, 8))
+        return [
+            z for z in range(1, zones_count + 1)
+            if self._entry.options.get(f"zone_{z}_linked_to", 0) == self._zone
+        ]
+
+    async def _mirror_to_slaves(self, coro_factory) -> None:
+        """Send the same command to all slave zones linked to this master."""
+        for slave_zone in self._get_slave_zones():
+            await coro_factory(slave_zone)
+
     @property
     def state(self) -> MediaPlayerState:
         data = self._zone_data
@@ -125,43 +140,53 @@ class AudacMTXZone(AudacMTXBaseEntity, MediaPlayerEntity):
             "zone_visible": self._entry.options.get(f"zone_{self._zone}_visible", True),
             "bass_visible": self._entry.options.get("global_bass_visible", True),
             "treble_visible": self._entry.options.get("global_treble_visible", True),
+            "linked_to": self._entry.options.get(f"zone_{self._zone}_linked_to", 0),
+            "linked_zones": self._get_slave_zones(),
         }
 
     async def async_set_volume_level(self, volume: float) -> None:
         volume_raw = int((1.0 - volume) * 70)
         await self.coordinator.client.set_volume(self._zone, volume_raw)
+        await self._mirror_to_slaves(lambda z: self.coordinator.client.set_volume(z, volume_raw))
         await self.coordinator.async_request_refresh()
 
     async def async_volume_up(self) -> None:
         await self.coordinator.client.set_volume_up(self._zone)
+        await self._mirror_to_slaves(lambda z: self.coordinator.client.set_volume_up(z))
         await self.coordinator.async_request_refresh()
 
     async def async_volume_down(self) -> None:
         await self.coordinator.client.set_volume_down(self._zone)
+        await self._mirror_to_slaves(lambda z: self.coordinator.client.set_volume_down(z))
         await self.coordinator.async_request_refresh()
 
     async def async_mute_volume(self, mute: bool) -> None:
         await self.coordinator.client.set_mute(self._zone, mute)
+        await self._mirror_to_slaves(lambda z: self.coordinator.client.set_mute(z, mute))
         await self.coordinator.async_request_refresh()
 
     async def async_select_source(self, source: str) -> None:
         for input_id, name in self._source_names.items():
             if name == source:
                 await self.coordinator.client.set_routing(self._zone, input_id)
+                await self._mirror_to_slaves(lambda z: self.coordinator.client.set_routing(z, input_id))
                 await self.coordinator.async_request_refresh()
                 return
 
     async def async_set_bass(self, bass: int) -> None:
         await self.coordinator.client.set_bass(self._zone, bass)
+        await self._mirror_to_slaves(lambda z: self.coordinator.client.set_bass(z, bass))
         await self.coordinator.async_request_refresh()
 
     async def async_set_treble(self, treble: int) -> None:
         await self.coordinator.client.set_treble(self._zone, treble)
+        await self._mirror_to_slaves(lambda z: self.coordinator.client.set_treble(z, treble))
         await self.coordinator.async_request_refresh()
 
     async def async_routing_up(self) -> None:
         """Cycle to next available input source (skips disabled inputs on device)."""
         await self.coordinator.client.set_routing_up(self._zone)
+        await self._mirror_to_slaves(lambda z: self.coordinator.client.set_routing_up(z))
         await self.coordinator.async_request_refresh()
 
     async def async_routing_down(self) -> None:

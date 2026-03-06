@@ -60,7 +60,15 @@
           "source_7_name": "Quelle 7 (Wandeingang WLI/MWX65)",
           "source_7_visible": "Quelle 7 Anzeigen",
           "source_8_name": "Quelle 8 (Wandeingang WMI)",
-          "source_8_visible": "Quelle 8 Anzeigen"
+          "source_8_visible": "Quelle 8 Anzeigen",
+          "zone_1_linked_to": "Zone 1 Gekoppelt an (0=keine)",
+          "zone_2_linked_to": "Zone 2 Gekoppelt an (0=keine)",
+          "zone_3_linked_to": "Zone 3 Gekoppelt an (0=keine)",
+          "zone_4_linked_to": "Zone 4 Gekoppelt an (0=keine)",
+          "zone_5_linked_to": "Zone 5 Gekoppelt an (0=keine)",
+          "zone_6_linked_to": "Zone 6 Gekoppelt an (0=keine)",
+          "zone_7_linked_to": "Zone 7 Gekoppelt an (0=keine)",
+          "zone_8_linked_to": "Zone 8 Gekoppelt an (0=keine)"
         }
       }
     }

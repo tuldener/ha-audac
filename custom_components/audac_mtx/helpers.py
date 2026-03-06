@@ -28,6 +28,10 @@ async def _async_update_zone_visibility(
 
     for zone in range(1, zones_count + 1):
         zone_visible = entry.options.get(f"zone_{zone}_visible", True)
+        # Slave zones (linked to a master) are always hidden
+        linked_to = entry.options.get(f"zone_{zone}_linked_to", 0)
+        is_slave = linked_to != 0
+        should_be_visible = zone_visible and not is_slave
 
         suffixes = (
             f"_zone_{zone}",
@@ -45,10 +49,10 @@ async def _async_update_zone_visibility(
                 continue
 
             currently_hidden = ent_entry.hidden_by == RegistryEntryHider.INTEGRATION
-            if not zone_visible and not currently_hidden:
+            if not should_be_visible and not currently_hidden:
                 ent_reg.async_update_entity(
                     ent_entry.entity_id,
                     hidden_by=RegistryEntryHider.INTEGRATION,
                 )
-            elif zone_visible and currently_hidden:
+            elif should_be_visible and currently_hidden:
                 ent_reg.async_update_entity(ent_entry.entity_id, hidden_by=None)

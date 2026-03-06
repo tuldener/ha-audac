@@ -60,7 +60,15 @@
           "source_7_name": "Source 7 (Wall Panel WLI/MWX65)",
           "source_7_visible": "Source 7 Show",
           "source_8_name": "Source 8 (Wall Panel WMI)",
-          "source_8_visible": "Source 8 Show"
+          "source_8_visible": "Source 8 Show",
+          "zone_1_linked_to": "Zone 1 Gekoppelt an (0=keine)",
+          "zone_2_linked_to": "Zone 2 Gekoppelt an (0=keine)",
+          "zone_3_linked_to": "Zone 3 Gekoppelt an (0=keine)",
+          "zone_4_linked_to": "Zone 4 Gekoppelt an (0=keine)",
+          "zone_5_linked_to": "Zone 5 Gekoppelt an (0=keine)",
+          "zone_6_linked_to": "Zone 6 Gekoppelt an (0=keine)",
+          "zone_7_linked_to": "Zone 7 Gekoppelt an (0=keine)",
+          "zone_8_linked_to": "Zone 8 Gekoppelt an (0=keine)"
         }
       }
     }

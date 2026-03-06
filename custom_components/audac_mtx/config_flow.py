@@ -116,6 +116,10 @@ class AudacMTXOptionsFlow(config_entries.OptionsFlow):
             schema_dict[vol.Optional(f"zone_{i}_name", default=default_name)] = str
             default_visible = current_options.get(f"zone_{i}_visible", True)
             schema_dict[vol.Optional(f"zone_{i}_visible", default=default_visible)] = bool
+            # Linked to: 0 = no link, 1-N = master zone number
+            link_choices = [0] + [z for z in range(1, zones_count + 1) if z != i]
+            default_linked = current_options.get(f"zone_{i}_linked_to", 0)
+            schema_dict[vol.Optional(f"zone_{i}_linked_to", default=default_linked)] = vol.In(link_choices)
 
         for input_id, default_label in INPUT_NAMES.items():
             current_label = current_options.get(f"source_{input_id}_name", default_label)
