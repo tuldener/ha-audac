@@ -25,7 +25,7 @@ UPDATE_TIMEOUT = 55.0
 
 # Tolerance for volume drift before a re-sync command is sent (0–70 raw units).
 # 2 = roughly 3% volume — avoids constant re-syncing due to rounding.
-SYNC_VOLUME_TOLERANCE = 2
+SYNC_VOLUME_TOLERANCE = 1
 
 
 class AudacMTXCoordinator(DataUpdateCoordinator[dict[int, dict[str, Any]]]):
@@ -88,7 +88,7 @@ class AudacMTXCoordinator(DataUpdateCoordinator[dict[int, dict[str, Any]]]):
             # Volume (raw 0–70, lower = louder)
             m_vol = master.get("volume", 70)
             s_vol = slave.get("volume", 70)
-            if abs(m_vol - s_vol) > SYNC_VOLUME_TOLERANCE:
+            if abs(m_vol - s_vol) >= SYNC_VOLUME_TOLERANCE:
                 _LOGGER.debug("Sync: zone %d volume %d -> %d (master zone %d)", slave_zone, s_vol, m_vol, master_zone)
                 await self.client.set_volume(slave_zone, m_vol)
 
