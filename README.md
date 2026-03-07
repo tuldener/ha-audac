@@ -2,7 +2,7 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-2.3.1-green.svg?style=flat-square)](https://github.com/tuldener/Audac-Mtx-Control)
+[![Version](https://img.shields.io/badge/Version-2.3.2-green.svg?style=flat-square)](https://github.com/tuldener/Audac-Mtx-Control)
 
 Home Assistant Integration zur Steuerung von **Audac MTX** Audio-Matrizen (MTX48 / MTX88).
 
@@ -93,6 +93,11 @@ accent_color: ""
 ---
 
 ## Changelog
+
+### 2.3.2
+- Fix: Duplizierter Code in coordinator.py entfernt – die zweite `_fetch_data` Definition (ohne Sync) ueberschrieb die korrekte erste
+- Fix: `async_shutdown` enthielt toten Code (versehentlich eingefuegter Duplikat-Block)
+- Fix: `CARD_VERSION` wird jetzt korrekt hochgezaehlt fuer Browser-Cache-Busting
 
 ### 2.3.1
 - Fix: Zonenkopplung funktionierte nicht (Sync + Ausblenden in der Kachel)
