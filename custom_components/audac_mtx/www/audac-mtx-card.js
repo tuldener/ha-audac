@@ -1,4 +1,4 @@
-const CARD_VERSION = "2.3.0";
+const CARD_VERSION = "2.3.3";
 
 // MUST be at top: HA reads this synchronously to know which custom elements to wait for
 window.customCards = window.customCards || [];
