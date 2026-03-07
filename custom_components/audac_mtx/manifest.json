@@ -7,6 +7,6 @@
   "documentation": "https://github.com/tuldener/Audac-Mtx-Control",
   "integration_type": "device",
   "iot_class": "local_polling",
-  "version": "2.3.6",
+  "version": "2.3.8",
   "requirements": []
 }

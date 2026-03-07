@@ -2,15 +2,13 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![GitHub Release](https://img.shields.io/github/v/release/tuldener/Audac-Mtx-Control?style=flat-square&color=green)](https://github.com/tuldener/Audac-Mtx-Control/releases/latest)
+[![Version](https://img.shields.io/badge/Version-2.3.8-green.svg?style=flat-square)](https://github.com/tuldener/Audac-Mtx-Control/releases/latest)
 
 Home Assistant Integration zur Steuerung von **Audac MTX** Audio-Matrizen (MTX48 / MTX88).
 
 Kommuniziert direkt per TCP mit dem MTX-Geraet und liefert eine Bubble Card-inspirierte Lovelace Card mit.
 
-<p align="center">
-  <img src="docs/card-preview.png" alt="Audac MTX Card Preview" width="400">
-</p>
+![Audac MTX Card Preview](https://raw.githubusercontent.com/tuldener/Audac-Mtx-Control/main/docs/card-preview.png)
 
 ---
 
@@ -97,6 +95,10 @@ accent_color: ""
 ---
 
 ## Changelog
+
+### 2.3.7
+- Fix: README Bild wird jetzt korrekt angezeigt (absolute URL via raw.githubusercontent.com)
+- Fix: Version-Badge auf statisch umgestellt (shields.io caching-Problem)
 
 ### 2.3.3
 - Bass/Hoehen-Sichtbarkeit aus Integrations-Settings entfernt (war doppelt mit Card-Editor Toggle)
