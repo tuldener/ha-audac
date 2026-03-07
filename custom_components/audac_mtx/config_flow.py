@@ -8,6 +8,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
 
 from .const import (
     DOMAIN,
@@ -107,7 +108,7 @@ class AudacMTXOptionsFlow(config_entries.OptionsFlow):
 
         schema_dict = {}
 
-        # Global display options
+        # Global display options – Bass & Höhen nebeneinander (beide booleans)
         schema_dict[vol.Optional("global_bass_visible",   default=current_options.get("global_bass_visible",   True))] = bool
         schema_dict[vol.Optional("global_treble_visible", default=current_options.get("global_treble_visible", True))] = bool
 
@@ -116,10 +117,32 @@ class AudacMTXOptionsFlow(config_entries.OptionsFlow):
             schema_dict[vol.Optional(f"zone_{i}_name", default=default_name)] = str
             default_visible = current_options.get(f"zone_{i}_visible", True)
             schema_dict[vol.Optional(f"zone_{i}_visible", default=default_visible)] = bool
-            # Linked to: 0 = no link, 1-N = master zone number
-            link_choices = [0] + [z for z in range(1, zones_count + 1) if z != i]
-            default_linked = current_options.get(f"zone_{i}_linked_to", 0)
-            schema_dict[vol.Optional(f"zone_{i}_linked_to", default=default_linked)] = vol.In(link_choices)
+
+            # Kopplung als Checkboxen (SelectSelector multi, mode=list)
+            # Migration: altes Format zone_i_linked_to (int) → neues Format zone_i_links (List[str])
+            old_linked = current_options.get(f"zone_{i}_linked_to", 0)
+            if old_linked and old_linked != 0:
+                migration_default = [str(old_linked)]
+            else:
+                migration_default = []
+            default_links = current_options.get(f"zone_{i}_links", migration_default)
+            if isinstance(default_links, int):
+                default_links = [str(default_links)] if default_links != 0 else []
+
+            coupling_options = [
+                selector.SelectOptionDict(
+                    value=str(j),
+                    label=current_options.get(f"zone_{j}_name", f"Zone {j}"),
+                )
+                for j in range(1, zones_count + 1) if j != i
+            ]
+            schema_dict[vol.Optional(f"zone_{i}_links", default=default_links)] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=coupling_options,
+                    multiple=True,
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            )
 
         for input_id, default_label in INPUT_NAMES.items():
             current_label = current_options.get(f"source_{input_id}_name", default_label)

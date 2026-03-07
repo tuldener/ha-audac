@@ -77,14 +77,28 @@ class AudacMTXZone(AudacMTXBaseEntity, MediaPlayerEntity):
         self._attr_source_list = list(self._source_names.values())
 
     def _get_slave_zones(self) -> list[int]:
-        """Return zone numbers that are linked/slaved to this master zone."""
+        """Return zone numbers that are linked/slaved to this master zone.
+
+        Supports both the new format (zone_z_links: List[str]) and the old
+        format (zone_z_linked_to: int) for backward compatibility.
+        """
         from .const import MODEL_MTX88, MODEL_ZONES, CONF_MODEL
         model = self._entry.data.get(CONF_MODEL, MODEL_MTX88)
         zones_count = self._entry.data.get("zones", MODEL_ZONES.get(model, 8))
-        return [
-            z for z in range(1, zones_count + 1)
-            if self._entry.options.get(f"zone_{z}_linked_to", 0) == self._zone
-        ]
+        result = []
+        for z in range(1, zones_count + 1):
+            if z == self._zone:
+                continue
+            links = self._entry.options.get(f"zone_{z}_links", None)
+            if links is not None:
+                # New format: list of zone-number strings
+                if str(self._zone) in links:
+                    result.append(z)
+            else:
+                # Old format: integer (0 = no link)
+                if self._entry.options.get(f"zone_{z}_linked_to", 0) == self._zone:
+                    result.append(z)
+        return result
 
     async def _mirror_to_slaves(self, coro_factory) -> None:
         """Send the same command to all slave zones linked to this master."""
@@ -140,7 +154,7 @@ class AudacMTXZone(AudacMTXBaseEntity, MediaPlayerEntity):
             "zone_visible": self._entry.options.get(f"zone_{self._zone}_visible", True),
             "bass_visible": self._entry.options.get("global_bass_visible", True),
             "treble_visible": self._entry.options.get("global_treble_visible", True),
-            "linked_to": self._entry.options.get(f"zone_{self._zone}_linked_to", 0),
+            "linked_to": [int(z) for z in self._entry.options.get(f"zone_{self._zone}_links", [])] or self._entry.options.get(f"zone_{self._zone}_linked_to", 0),
             "linked_zones": self._get_slave_zones(),
         }
 
