@@ -17,13 +17,14 @@ Kommuniziert direkt per TCP mit dem MTX-Geraet und liefert eine Bubble Card-insp
 - **Direkte TCP-Verbindung** - Kommuniziert direkt mit dem Audac MTX (Port 5001)
 - **Media Player Entities** - Jede Zone wird als eigener Media Player dargestellt
 - **Zonensteuerung** - Lautstaerke, Mute, Quellenauswahl pro Zone
-- **Zonenkopplung** - Zonen als Master/Slave koppeln (Checkboxen in den Optionen). Slave-Zonen werden automatisch synchronisiert und in der Kachel ausgeblendet
+- **Zonenkopplung** - Zonen als Master/Slave koppeln (Checkboxen in den Optionen). Slave-Zonen werden automatisch synchronisiert und in der Kachel ausgeblendet. Gekoppelte Zonennamen werden neben dem Link-Symbol angezeigt
 - **Bass & Hoehen** - Anzeige und Steuerung der Klangregelung (+-14 dB), ein-/ausblendbar im Card-Editor
 - **Quellenauswahl** - Uebersichtliches Grid mit allen verfuegbaren Eingaengen
 - **Automatische Erkennung** - Die Card findet alle MTX-Zonen automatisch
 - **Benutzerdefinierte Namen** - Zonen und Quellen individuell benennen (ueber Optionen)
 - **Zonen-Sichtbarkeit** - Einzelne Zonen ausblenden; Entitaeten bleiben fuer Services/Automationen erhalten
 - **Quellen-Sichtbarkeit** - Einzelne Quellen ausblenden (z.B. nicht belegte Eingaenge)
+- **Mehrsprachig** - Automatische Spracherkennung (Deutsch / Englisch) basierend auf HA-Benutzereinstellungen, Fallback: Englisch
 - **Dark / Light Mode** - Automatisch oder manuell waehlbar
 - **Akzentfarbe** - Frei waehlbare Akzentfarbe im Card-Editor
 - **Akkordeon-Navigation** - Nur eine Zone gleichzeitig geoeffnet
@@ -68,10 +69,13 @@ Kommuniziert direkt per TCP mit dem MTX-Geraet und liefert eine Bubble Card-insp
 
 ## Lovelace Card
 
+Die Card wird automatisch als Lovelace-Ressource registriert. Falls noetig, kann sie manuell hinzugefuegt werden:
+
+**Einstellungen** -> **Dashboards** -> **Ressourcen** -> URL: `/audac_mtx/audac-mtx-card.js`, Typ: **JavaScript-Modul**
+
 ```yaml
 type: custom:audac-mtx-card
 title: Audac MTX
-zones: []
 show_bass_treble: true
 show_source: true
 theme: auto
@@ -96,31 +100,50 @@ accent_color: ""
 
 ## Changelog
 
+### 2.4.3
+- Gekoppelte Slave-Zonennamen werden neben dem Link-Symbol angezeigt (z.B. `Bar 🔗 Subwoofer`)
+- Neue Hilfsfunktion `mtxLinkedNames()` loest Zonennummern zu Friendly Names auf
+
+### 2.4.2
+- i18n Fallback auf Englisch geaendert (statt Deutsch)
+
+### 2.4.1
+- Neu: Automatische Spracherkennung (Deutsch / Englisch) fuer die gesamte Lovelace Card
+- Sprache wird aus den HA-Benutzereinstellungen gelesen (`hass.language`)
+- Alle Card-UI-Strings uebersetzt: Labels, Tooltips, Editor, Fehlermeldungen, Card-Beschreibungen
+
+### 2.4.0
+- README: Echtes Screenshot als Card-Preview
+
+### 2.3.9
+- Card-Editor: Bereich "Zonen" (manuelles Hinzufuegen/Entfernen) entfernt, Auto-Discover reicht aus
+
+### 2.3.8
+- README: Card-Preview mit generischen Zonennamen, absoluter Bildpfad fuer HACS
+
 ### 2.3.7
-- Fix: README Bild wird jetzt korrekt angezeigt (absolute URL via raw.githubusercontent.com)
-- Fix: Version-Badge auf statisch umgestellt (shields.io caching-Problem)
+- Fix: README Bild korrekt angezeigt (absolute URL via raw.githubusercontent.com)
+- Fix: Version-Badge auf statisch umgestellt
 
 ### 2.3.3
-- Bass/Hoehen-Sichtbarkeit aus Integrations-Settings entfernt (war doppelt mit Card-Editor Toggle)
-- Card: Bass/Hoehen werden nur noch ueber den Card-Editor gesteuert (`show_bass_treble`)
-- Card: CARD_VERSION korrekt gebumpt fuer Browser-Cache-Busting
+- Bass/Hoehen-Sichtbarkeit aus Integrations-Settings entfernt (nur noch Card-Editor Toggle)
+- CARD_VERSION korrekt gebumpt fuer Browser-Cache-Busting
 
 ### 2.3.2
-- Fix: Duplizierter Code in coordinator.py entfernt – die zweite `_fetch_data` Definition (ohne Sync) ueberschrieb die korrekte erste
-- Fix: `async_shutdown` enthielt toten Code (versehentlich eingefuegter Duplikat-Block)
-- Fix: `CARD_VERSION` wird jetzt korrekt hochgezaehlt fuer Browser-Cache-Busting
+- Fix: Duplizierter Code in coordinator.py entfernt – zweite `_fetch_data` (ohne Sync) ueberschrieb die erste
+- Fix: `async_shutdown` bereinigt (toter Code entfernt)
 
 ### 2.3.1
 - Fix: Zonenkopplung funktionierte nicht (Sync + Ausblenden in der Kachel)
-- Coordinator liest jetzt das neue `zone_X_links`-Format (Liste) statt nur das alte `zone_X_linked_to` (int)
-- Kachel blendet Slave-Zonen (nicht-leeres `linked_to`) korrekt aus
+- Coordinator liest jetzt `zone_X_links` (Liste) statt nur `zone_X_linked_to` (int)
+- Kachel blendet Slave-Zonen korrekt aus
 
 ### 2.3.0
-- Kopplung als Checkboxen (`SelectSelector`, Multi-Select, Listenmodus) statt Dropdown
-- Migration vom alten Format (`zone_X_linked_to`) auf neues Format (`zone_X_links`)
+- Kopplung als Checkboxen (SelectSelector, Multi-Select) statt Dropdown
+- Migration vom alten auf neues Kopplungsformat
 
 ### 2.2.1
-- Slave-Zonen werden bei jedem Coordinator-Poll (~60s) automatisch synchronisiert
+- Slave-Zonen-Sync bei jedem Coordinator-Poll (~60s)
 - Toleranz bei Lautstaerke (+-2 Einheiten), exakter Abgleich fuer Mute, Quelle, Bass, Treble
 
 ### 2.2.0
@@ -131,16 +154,15 @@ accent_color: ""
 - Fix: Zonen-Dropdown im Single-Card-Editor
 
 ### 2.1.0
-- Bass/Treble-Sichtbarkeit im Card-Editor (ersetzt seit 2.3.3 die Integrationsoption)
+- Bass/Treble-Sichtbarkeit im Card-Editor
 
 ### 2.0.1
 - Fix: `_async_update_zone_visibility` war nicht definiert
-- Fix: Sichtbarkeit deckt jetzt alle Entitaets-Typen ab (media_player, number, switch, select, sensor)
+- Fix: Sichtbarkeit deckt alle Entitaets-Typen ab
 - Neu: Zentrales `helpers.py`
 
 ### 2.0.0
 - Entitaeten werden immer erstellt, Sichtbarkeit ueber Entity Registry
-- `zone_visible` als State-Attribut
 
 ### 1.9.2
 - Coordinator SCAN_INTERVAL 60s, Timeout-Verbesserungen
@@ -152,16 +174,13 @@ accent_color: ""
 - Fix: `window.customCards` an Dateianfang verschoben
 
 ### 1.7.0
-- Zonennamen automatisch gekuerzt
-- Prozent-Badge entfernt, Lautstaerke als Hintergrundfuellung
+- Zonennamen automatisch gekuerzt, Lautstaerke als Hintergrundfuellung
 
 ### 1.6.0
-- Flackern behoben: intelligentes DOM-Patching
-- Bass/Hoehen-Slider interaktiv
+- Flackern behoben: intelligentes DOM-Patching, Bass/Hoehen-Slider interaktiv
 
 ### 1.3.0
-- Services `routing_up` / `routing_down`
-- Protokolldokumentation
+- Services `routing_up` / `routing_down`, Protokolldokumentation
 
 ### 1.0.0
 - Erstveroeffentlichung
