@@ -1,14 +1,71 @@
-const CARD_VERSION = "2.3.3";
+const CARD_VERSION = "2.4.1";
+
+// ─── i18n ───────────────────────────────────────────────────────────
+const _mtxLang = () => {
+  try { return document.querySelector('home-assistant')?.hass?.language || 'de'; } catch(e) { return 'de'; }
+};
+const _mtxI18n = {
+  de: {
+    zones: 'Zonen', zone: 'Zone', zone_1: 'Zone', zone_n: 'Zonen',
+    no_zones: 'Keine Zonen gefunden',
+    no_zones_hint: 'Audac MTX Integration einrichten oder Zonen manuell konfigurieren',
+    muted: 'Stumm', linked_zones: 'Gekoppelte Zonen',
+    volume: 'Lautst\u00e4rke', source: 'Quelle', bass: 'Bass', treble: 'H\u00f6hen',
+    title: 'Titel', accent_color: 'Akzentfarbe', reset: 'Standard',
+    accent_hint: 'Standard: #7c6bf0 (Violett)', design: 'Design',
+    auto: 'Automatisch', dark: 'Dunkel', light: 'Hell',
+    show_source: 'Quellenauswahl anzeigen', show_bass_treble: 'Bass / H\u00f6hen anzeigen',
+    auto_first_zone: '-- Automatisch (erste Zone) --',
+    title_optional: 'Titel (optional)', auto_from_entity: 'Automatisch vom Entity',
+    desc_main: 'Alle Zonen mit Lautst\u00e4rke, Quelle, Bass & H\u00f6hen',
+    desc_zones: 'Zonen\u00fcbersicht (kompakt)',
+    desc_volume: 'Lautst\u00e4rke-Regler f\u00fcr eine einzelne Zone',
+    desc_source: 'Quellenauswahl f\u00fcr eine einzelne Zone',
+    desc_bass: 'Bass-Regler f\u00fcr eine einzelne Zone',
+    desc_treble: 'H\u00f6hen-Regler f\u00fcr eine einzelne Zone',
+    name_volume: 'Audac MTX Lautst\u00e4rke', name_source: 'Audac MTX Quelle',
+    name_bass: 'Audac MTX Bass', name_treble: 'Audac MTX H\u00f6hen',
+    name_zones: 'Audac MTX Zonen',
+    entity_not_found: 'Entity nicht gefunden',
+    none_configured: '(keine konfiguriert)',
+  },
+  en: {
+    zones: 'Zones', zone: 'Zone', zone_1: 'Zone', zone_n: 'Zones',
+    no_zones: 'No zones found',
+    no_zones_hint: 'Set up Audac MTX integration or configure zones manually',
+    muted: 'Muted', linked_zones: 'Linked zones',
+    volume: 'Volume', source: 'Source', bass: 'Bass', treble: 'Treble',
+    title: 'Title', accent_color: 'Accent color', reset: 'Default',
+    accent_hint: 'Default: #7c6bf0 (Violet)', design: 'Design',
+    auto: 'Automatic', dark: 'Dark', light: 'Light',
+    show_source: 'Show source selection', show_bass_treble: 'Show bass / treble',
+    auto_first_zone: '-- Automatic (first zone) --',
+    title_optional: 'Title (optional)', auto_from_entity: 'Automatic from entity',
+    desc_main: 'All zones with volume, source, bass & treble',
+    desc_zones: 'Zone overview (compact)',
+    desc_volume: 'Volume control for a single zone',
+    desc_source: 'Source selection for a single zone',
+    desc_bass: 'Bass control for a single zone',
+    desc_treble: 'Treble control for a single zone',
+    name_volume: 'Audac MTX Volume', name_source: 'Audac MTX Source',
+    name_bass: 'Audac MTX Bass', name_treble: 'Audac MTX Treble',
+    name_zones: 'Audac MTX Zones',
+    entity_not_found: 'Entity not found',
+    none_configured: '(none configured)',
+  },
+};
+function mtxT(key) { const l = _mtxLang(); return (_mtxI18n[l] || _mtxI18n['de'])[key] || _mtxI18n['de'][key] || key; }
+function mtxPlural(count, one, many) { return count === 1 ? one : many; }
 
 // MUST be at top: HA reads this synchronously to know which custom elements to wait for
 window.customCards = window.customCards || [];
 [
   { type: "audac-mtx-card",        name: "Audac MTX",         description: "Multi-zone Audac MTX audio matrix card", preview: true },
-  { type: "audac-mtx-more-info",   name: "Audac MTX Zonen",   description: "Zonenübersicht (kompakt)", preview: false },
-  { type: "audac-mtx-volume-card", name: "Audac MTX Lautstärke", description: "Lautstärkeregler für eine Zone", preview: false },
-  { type: "audac-mtx-source-card", name: "Audac MTX Quelle",  description: "Quellenauswahl für eine Zone", preview: false },
-  { type: "audac-mtx-bass-card",   name: "Audac MTX Bass",    description: "Bass-Regler für eine Zone", preview: false },
-  { type: "audac-mtx-treble-card", name: "Audac MTX Höhen",   description: "Höhen-Regler für eine Zone", preview: false },
+  { type: "audac-mtx-more-info",   name: "Audac MTX Zones",   description: "Zone overview (compact)", preview: false },
+  { type: "audac-mtx-volume-card", name: "Audac MTX Volume",  description: "Volume control for a zone", preview: false },
+  { type: "audac-mtx-source-card", name: "Audac MTX Source",  description: "Source selection for a zone", preview: false },
+  { type: "audac-mtx-bass-card",   name: "Audac MTX Bass",    description: "Bass control for a zone", preview: false },
+  { type: "audac-mtx-treble-card", name: "Audac MTX Treble",  description: "Treble control for a zone", preview: false },
 ].forEach(card => {
   if (!window.customCards.find(c => c.type === card.type)) {
     window.customCards.push(card);
@@ -370,7 +427,7 @@ class AudacMTXCard extends HTMLElement {
 
       // Detail line (volume % · source)
       const detail = card.querySelector(".zone-detail");
-      if (detail) detail.textContent = muted ? "Stumm" : (this._config.show_source && src !== "---" ? src : "");
+      if (detail) detail.textContent = muted ? mtxT("muted") : (this._config.show_source && src !== "---" ? src : "");
 
       // Badge
       // Mute badge: add/remove dynamically
@@ -500,12 +557,12 @@ class AudacMTXCard extends HTMLElement {
           <div class="mtx-header-icon">${mtxSvg('music', 24)}</div>
           <div class="mtx-header-content">
             <h2 class="mtx-header-title">${mtxEscape(this._config.title)}</h2>
-            <span class="mtx-header-sub">${zones.length} Zone${zones.length !== 1 ? 'n' : ''}</span>
+            <span class="mtx-header-sub">${zones.length} ${mtxPlural(zones.length, mtxT('zone_1'), mtxT('zone_n'))}</span>
           </div>
           <div class="mtx-header-badge">${activeCount}/${zones.length}</div>
         </div>
         <div class="zones-container">
-          ${zones.length > 0 ? zones.map(z => this._renderZone(z, t)).join("") : `<div class="mtx-empty">${mtxSvg('music', 48)}<p>Keine Zonen gefunden</p><span>Audac MTX Integration einrichten oder Zonen manuell konfigurieren</span></div>`}
+          ${zones.length > 0 ? zones.map(z => this._renderZone(z, t)).join("") : `<div class="mtx-empty">${mtxSvg('music', 48)}<p>${mtxT("no_zones")}</p><span>${mtxT("no_zones_hint")}</span></div>`}
         </div>
       </div>
     `;
@@ -537,8 +594,8 @@ class AudacMTXCard extends HTMLElement {
           <div class="zone-content">
             <div class="zone-icon ${active ? 'active' : ''}">${mtxSvg(muted ? 'speakerMuted' : 'speaker')}</div>
             <div class="zone-info">
-              <span class="zone-name">${mtxEscape(z._shortName || z.name)}${(z.entity.attributes.linked_zones || []).length > 0 ? ' <span style="font-size:10px;opacity:0.6;" title="Gekoppelte Zonen">🔗</span>' : ''}</span>
-              <span class="zone-detail">${muted ? 'Stumm' : (this._config.show_source && src !== '---' ? mtxEscape(src) : '')}</span>
+              <span class="zone-name">${mtxEscape(z._shortName || z.name)}${(z.entity.attributes.linked_zones || []).length > 0 ? ' <span style="font-size:10px;opacity:0.6;" title="${mtxT('linked_zones')}">🔗</span>' : ''}</span>
+              <span class="zone-detail">${muted ? mtxT('muted') : (this._config.show_source && src !== '---' ? mtxEscape(src) : '')}</span>
             </div>
             ${muted ? `<div class="zone-badge muted">MUTE</div>` : ''}
             <div class="zone-chevron ${exp ? 'rotated' : ''}">${mtxSvg('chevron', 20)}</div>
@@ -562,7 +619,7 @@ class AudacMTXCard extends HTMLElement {
     return `
       <div class="zone-controls">
         <div class="ctrl-section">
-          <div class="mtx-label">${mtxSvg('speakerSmall', 16)} Lautst\u00e4rke</div>
+          <div class="mtx-label">${mtxSvg("speakerSmall", 16)} ${mtxT("volume")}</div>
           <div class="vol-row">
             <button class="mtx-btn ${muted ? 'active-mute' : ''}" data-mute="${z.entityId}" data-muted="${muted}">
               ${mtxSvg(muted ? 'speakerMuted' : 'speaker', 18)}
@@ -576,7 +633,7 @@ class AudacMTXCard extends HTMLElement {
         </div>
         ${this._config.show_source && srcList.length > 0 ? `
         <div class="ctrl-section">
-          <div class="mtx-label">${mtxSvg('source', 16)} Quelle</div>
+          <div class="mtx-label">${mtxSvg("source", 16)} ${mtxT("source")}</div>
           <div class="mtx-source-grid">
             ${srcList.map(s => `<button class="mtx-source-btn ${s === src ? 'active' : ''}" data-source="${z.entityId}" data-value="${mtxEscape(s)}">${mtxEscape(s)}</button>`).join("")}
           </div>
@@ -586,7 +643,7 @@ class AudacMTXCard extends HTMLElement {
           ${bass != null ? `
           <div class="tone-ctrl">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <div class="mtx-label">Bass</div>
+              <div class="mtx-label">${mtxT("bass")}</div>
               <span class="tone-val">${bass > 0 ? '+' : ''}${bass} dB</span>
             </div>
             <div class="mtx-slider-wrap" style="height:28px;">
@@ -597,7 +654,7 @@ class AudacMTXCard extends HTMLElement {
           ${treble != null ? `
           <div class="tone-ctrl">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <div class="mtx-label">H\u00f6hen</div>
+              <div class="mtx-label">${mtxT("treble")}</div>
               <span class="tone-val">${treble > 0 ? '+' : ''}${treble} dB</span>
             </div>
             <div class="mtx-slider-wrap" style="height:28px;">
@@ -688,25 +745,25 @@ class AudacMTXCardEditor extends HTMLElement {
         .btn-add { margin-top: 4px; padding: 8px 14px; border-radius: 8px; border: 1px dashed var(--divider-color, #ccc); background: transparent; color: var(--primary-text-color, #333); cursor: pointer; font-size: 13px; width: 100%; }
       </style>
       <div class="editor">
-        <div class="field"><label>Titel</label><input type="text" id="title" value="${this._config.title || 'Audac MTX'}" /></div>
+        <div class="field"><label>${mtxT("title")}</label><input type="text" id="title" value="${this._config.title || 'Audac MTX'}" /></div>
         <div class="field">
-          <label>Akzentfarbe</label>
+          <label>${mtxT("accent_color")}</label>
           <div style="display:flex;gap:8px;align-items:center;">
             <input type="color" id="accent_color" value="${this._config.accent_color || '#7c6bf0'}" style="width:48px;height:36px;padding:2px;border-radius:8px;border:1px solid var(--divider-color,#ddd);cursor:pointer;" />
             <input type="text" id="accent_color_hex" value="${this._config.accent_color || '#7c6bf0'}" placeholder="#7c6bf0" style="flex:1;" />
-            <button id="accent_reset" style="padding:6px 10px;border-radius:8px;border:1px solid var(--divider-color,#ddd);background:transparent;cursor:pointer;font-size:12px;white-space:nowrap;">↺ Standard</button>
+            <button id="accent_reset" style="padding:6px 10px;border-radius:8px;border:1px solid var(--divider-color,#ddd);background:transparent;cursor:pointer;font-size:12px;white-space:nowrap;">↺ ${mtxT("reset")}</button>
           </div>
-          <div class="hint">Standard: #7c6bf0 (Violett)</div>
+          <div class="hint">${mtxT("accent_hint")}</div>
         </div>
-        <div class="field"><label>Design</label>
+        <div class="field"><label>${mtxT("design")}</label>
           <select id="theme">
-            <option value="auto" ${this._config.theme === 'auto' ? 'selected' : ''}>Automatisch</option>
-            <option value="dark" ${this._config.theme === 'dark' ? 'selected' : ''}>Dunkel</option>
-            <option value="light" ${this._config.theme === 'light' ? 'selected' : ''}>Hell</option>
+            <option value="auto" ${this._config.theme === 'auto' ? 'selected' : ''}>${mtxT("auto")}</option>
+            <option value="dark" ${this._config.theme === 'dark' ? 'selected' : ''}>${mtxT("dark")}</option>
+            <option value="light" ${this._config.theme === 'light' ? 'selected' : ''}>${mtxT("light")}</option>
           </select>
         </div>
-        <div class="checkbox-field"><input type="checkbox" id="show_source" ${this._config.show_source !== false ? 'checked' : ''} /><label for="show_source">Quellenauswahl anzeigen</label></div>
-        <div class="checkbox-field"><input type="checkbox" id="show_bass_treble" ${this._config.show_bass_treble !== false ? 'checked' : ''} /><label for="show_bass_treble">Bass / H\u00f6hen anzeigen</label></div>
+        <div class="checkbox-field"><input type="checkbox" id="show_source" ${this._config.show_source !== false ? 'checked' : ''} /><label for="show_source">${mtxT("show_source")}</label></div>
+        <div class="checkbox-field"><input type="checkbox" id="show_bass_treble" ${this._config.show_bass_treble !== false ? 'checked' : ''} /><label for="show_bass_treble">${mtxT("show_bass_treble")}</label></div>
       </div>
     `;
     this.shadowRoot.getElementById("title").addEventListener("change", e => { this._config.title = e.target.value; this._fire(); });
@@ -755,7 +812,7 @@ class AudacMTXVolumeCard extends HTMLElement {
     if (!this.shadowRoot || !this._hass) return;
     const entityId = this._config.entity;
     const entity = entityId ? this._hass.states[entityId] : this._findEntity();
-    if (!entity) { this.shadowRoot.innerHTML = `<div style="padding:20px;opacity:0.5;">Entity nicht gefunden: ${mtxEscape(entityId || '(keine konfiguriert)')}</div>`; return; }
+    if (!entity) { this.shadowRoot.innerHTML = `<div style="padding:20px;opacity:0.5;">${mtxT("entity_not_found")}: ${mtxEscape(entityId || mtxT("none_configured"))}</div>`; return; }
     const t = mtxThemeVars(mtxIsDark(this._config.theme));
     const vol = Math.round((entity.attributes.volume_level || 0) * 100);
     const muted = entity.attributes.is_volume_muted === true;
@@ -771,7 +828,7 @@ class AudacMTXVolumeCard extends HTMLElement {
           <div class="mtx-header-icon">${mtxSvg('speaker', 22)}</div>
           <div class="mtx-header-content">
             <div class="mtx-header-title">${mtxEscape(name)}</div>
-            <div class="mtx-header-sub">Lautst\u00e4rke</div>
+            <div class="mtx-header-sub">${mtxT("volume")}</div>
           </div>
           <div class="mtx-header-badge">${muted ? 'MUTE' : vol + '%'}</div>
         </div>
@@ -826,7 +883,7 @@ class AudacMTXSourceCard extends HTMLElement {
     if (!this.shadowRoot || !this._hass) return;
     const entityId = this._config.entity;
     const entity = entityId ? this._hass.states[entityId] : this._findEntity();
-    if (!entity) { this.shadowRoot.innerHTML = `<div style="padding:20px;opacity:0.5;">Entity nicht gefunden: ${mtxEscape(entityId || '(keine konfiguriert)')}</div>`; return; }
+    if (!entity) { this.shadowRoot.innerHTML = `<div style="padding:20px;opacity:0.5;">${mtxT("entity_not_found")}: ${mtxEscape(entityId || mtxT("none_configured"))}</div>`; return; }
     const t = mtxThemeVars(mtxIsDark(this._config.theme));
     const src = entity.attributes.source || "---";
     const srcList = entity.attributes.source_list || [];
@@ -841,7 +898,7 @@ class AudacMTXSourceCard extends HTMLElement {
           <div class="mtx-header-icon">${mtxSvg('source', 22)}</div>
           <div class="mtx-header-content">
             <div class="mtx-header-title">${mtxEscape(name)}</div>
-            <div class="mtx-header-sub">Quelle</div>
+            <div class="mtx-header-sub">${mtxT("source")}</div>
           </div>
           <div class="mtx-header-badge">${mtxEscape(src)}</div>
         </div>
@@ -876,7 +933,7 @@ class AudacMTXBassCard extends HTMLElement {
     if (!this.shadowRoot || !this._hass) return;
     const entityId = this._config.entity;
     const entity = entityId ? this._hass.states[entityId] : this._findEntity();
-    if (!entity) { this.shadowRoot.innerHTML = `<div style="padding:20px;opacity:0.5;">Entity nicht gefunden: ${mtxEscape(entityId || '(keine konfiguriert)')}</div>`; return; }
+    if (!entity) { this.shadowRoot.innerHTML = `<div style="padding:20px;opacity:0.5;">${mtxT("entity_not_found")}: ${mtxEscape(entityId || mtxT("none_configured"))}</div>`; return; }
     const t = mtxThemeVars(mtxIsDark(this._config.theme));
     const bass = entity.attributes.bass;
     const bassRaw = entity.attributes.bass_raw;
@@ -892,7 +949,7 @@ class AudacMTXBassCard extends HTMLElement {
           <div class="mtx-header-icon">${mtxSvg('equalizer', 22)}</div>
           <div class="mtx-header-content">
             <div class="mtx-header-title">${mtxEscape(name)}</div>
-            <div class="mtx-header-sub">Bass</div>
+            <div class="mtx-header-sub">${mtxT("bass")}</div>
           </div>
           <div class="mtx-header-badge">${bass != null ? (bass > 0 ? '+' : '') + bass + ' dB' : '---'}</div>
         </div>
@@ -936,7 +993,7 @@ class AudacMTXTrebleCard extends HTMLElement {
     if (!this.shadowRoot || !this._hass) return;
     const entityId = this._config.entity;
     const entity = entityId ? this._hass.states[entityId] : this._findEntity();
-    if (!entity) { this.shadowRoot.innerHTML = `<div style="padding:20px;opacity:0.5;">Entity nicht gefunden: ${mtxEscape(entityId || '(keine konfiguriert)')}</div>`; return; }
+    if (!entity) { this.shadowRoot.innerHTML = `<div style="padding:20px;opacity:0.5;">${mtxT("entity_not_found")}: ${mtxEscape(entityId || mtxT("none_configured"))}</div>`; return; }
     const t = mtxThemeVars(mtxIsDark(this._config.theme));
     const treble = entity.attributes.treble;
     const trebleRaw = entity.attributes.treble_raw;
@@ -952,7 +1009,7 @@ class AudacMTXTrebleCard extends HTMLElement {
           <div class="mtx-header-icon">${mtxSvg('equalizer', 22)}</div>
           <div class="mtx-header-content">
             <div class="mtx-header-title">${mtxEscape(name)}</div>
-            <div class="mtx-header-sub">H\u00f6hen</div>
+            <div class="mtx-header-sub">${mtxT("treble")}</div>
           </div>
           <div class="mtx-header-badge">${treble != null ? (treble > 0 ? '+' : '') + treble + ' dB' : '---'}</div>
         </div>
@@ -1009,22 +1066,22 @@ class AudacMTXSingleEditor extends HTMLElement {
       <style>${singleCardEditorStyles()}</style>
       <div class="editor">
         <div class="field">
-          <label>Zone</label>
+          <label>${mtxT("zone")}</label>
           <select id="entity">
-            <option value="" ${!current ? "selected" : ""}>-- Automatisch (erste Zone) --</option>
+            <option value="" ${!current ? "selected" : ""}>${mtxT("auto_first_zone")}</option>
             ${zoneOptions}
           </select>
         </div>
         <div class="field">
-          <label>Titel (optional)</label>
-          <input type="text" id="title" value="${this._config.title || ''}" placeholder="Automatisch vom Entity" />
+          <label>${mtxT("title_optional")}</label>
+          <input type="text" id="title" value="${this._config.title || ''}" placeholder="${mtxT("auto_from_entity")}" />
         </div>
         <div class="field">
-          <label>Design</label>
+          <label>${mtxT("design")}</label>
           <select id="theme">
-            <option value="auto" ${this._config.theme === 'auto' ? 'selected' : ''}>Automatisch</option>
-            <option value="dark" ${this._config.theme === 'dark' ? 'selected' : ''}>Dunkel</option>
-            <option value="light" ${this._config.theme === 'light' ? 'selected' : ''}>Hell</option>
+            <option value="auto" ${this._config.theme === 'auto' ? 'selected' : ''}>${mtxT("auto")}</option>
+            <option value="dark" ${this._config.theme === 'dark' ? 'selected' : ''}>${mtxT("dark")}</option>
+            <option value="light" ${this._config.theme === 'light' ? 'selected' : ''}>${mtxT("light")}</option>
           </select>
         </div>
       </div>
@@ -1144,12 +1201,12 @@ class AudacMTXMoreInfo extends HTMLElement {
           <div class="mtx-header-icon">${mtxSvg('music', 24)}</div>
           <div class="mtx-header-content">
             <h2 class="mtx-header-title">Audac MTX</h2>
-            <span class="mtx-header-sub">${zones.length} Zone${zones.length !== 1 ? 'n' : ''}</span>
+            <span class="mtx-header-sub">${zones.length} ${mtxPlural(zones.length, mtxT('zone_1'), mtxT('zone_n'))}</span>
           </div>
           <div class="mtx-header-badge">${activeCount}/${zones.length}</div>
         </div>
         <div class="zones-container">
-          ${zones.length > 0 ? zones.map(z => this._renderZone(z, t)).join("") : `<div class="mtx-empty">${mtxSvg('music', 48)}<p>Keine Zonen gefunden</p></div>`}
+          ${zones.length > 0 ? zones.map(z => this._renderZone(z, t)).join("") : `<div class="mtx-empty">${mtxSvg('music', 48)}<p>${mtxT("no_zones")}</p></div>`}
         </div>
       </div>
     `;
@@ -1180,7 +1237,7 @@ class AudacMTXMoreInfo extends HTMLElement {
             <div class="zone-icon ${active ? 'active' : ''}">${mtxSvg(muted ? 'speakerMuted' : 'speaker')}</div>
             <div class="zone-info">
               <span class="zone-name">${mtxEscape(z.name)}</span>
-              <span class="zone-detail">${muted ? 'Stumm' : vol + '%'}${src !== '---' ? ' \u00b7 ' + mtxEscape(src) : ''}</span>
+              <span class="zone-detail">${muted ? mtxT('muted') : vol + '%'}${src !== '---' ? ' \u00b7 ' + mtxEscape(src) : ''}</span>
             </div>
             ${muted ? `<div class="zone-badge muted">MUTE</div>` : ''}
             <div class="zone-chevron ${exp ? 'rotated' : ''}">${mtxSvg('chevron', 20)}</div>
@@ -1202,7 +1259,7 @@ class AudacMTXMoreInfo extends HTMLElement {
     return `
       <div class="zone-controls">
         <div class="ctrl-section">
-          <div class="mtx-label">${mtxSvg('speakerSmall', 16)} Lautst\u00e4rke</div>
+          <div class="mtx-label">${mtxSvg("speakerSmall", 16)} ${mtxT("volume")}</div>
           <div class="vol-row">
             <button class="mtx-btn ${muted ? 'active-mute' : ''}" data-mute="${z.entityId}" data-muted="${muted}">
               ${mtxSvg(muted ? 'speakerMuted' : 'speaker', 18)}
@@ -1216,7 +1273,7 @@ class AudacMTXMoreInfo extends HTMLElement {
         </div>
         ${srcList.length > 0 ? `
         <div class="ctrl-section">
-          <div class="mtx-label">${mtxSvg('source', 16)} Quelle</div>
+          <div class="mtx-label">${mtxSvg("source", 16)} ${mtxT("source")}</div>
           <div class="mtx-source-grid">
             ${srcList.map(s => `<button class="mtx-source-btn ${s === src ? 'active' : ''}" data-source="${z.entityId}" data-value="${mtxEscape(s)}">${mtxEscape(s)}</button>`).join("")}
           </div>
@@ -1226,7 +1283,7 @@ class AudacMTXMoreInfo extends HTMLElement {
           ${bass != null ? `
           <div class="tone-ctrl">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <div class="mtx-label">Bass</div>
+              <div class="mtx-label">${mtxT("bass")}</div>
               <span class="tone-val">${bass > 0 ? '+' : ''}${bass} dB</span>
             </div>
             <div class="mtx-slider-wrap" style="height:28px;">
@@ -1237,7 +1294,7 @@ class AudacMTXMoreInfo extends HTMLElement {
           ${treble != null ? `
           <div class="tone-ctrl">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <div class="mtx-label">H\u00f6hen</div>
+              <div class="mtx-label">${mtxT("treble")}</div>
               <span class="tone-val">${treble > 0 ? '+' : ''}${treble} dB</span>
             </div>
             <div class="mtx-slider-wrap" style="height:28px;">
@@ -1339,11 +1396,11 @@ Promise.all([
 
 window.customCards = window.customCards || [];
 window.customCards.push(
-  { type: "audac-mtx-card", name: "Audac MTX", description: "Alle Zonen mit Lautst\u00e4rke, Quelle, Bass & H\u00f6hen", preview: true, documentationURL: "https://github.com/tuldener/Audac-Mtx-Control" },
-  { type: "audac-mtx-volume-card", name: "Audac MTX Lautst\u00e4rke", description: "Lautst\u00e4rke-Regler f\u00fcr eine einzelne Zone", preview: true },
-  { type: "audac-mtx-source-card", name: "Audac MTX Quelle", description: "Quellenauswahl f\u00fcr eine einzelne Zone", preview: true },
-  { type: "audac-mtx-bass-card", name: "Audac MTX Bass", description: "Bass-Regler f\u00fcr eine einzelne Zone", preview: true },
-  { type: "audac-mtx-treble-card", name: "Audac MTX H\u00f6hen", description: "H\u00f6hen-Regler f\u00fcr eine einzelne Zone", preview: true },
+  { type: "audac-mtx-card", name: "Audac MTX", description: mtxT("desc_main"), preview: true, documentationURL: "https://github.com/tuldener/Audac-Mtx-Control" },
+  { type: "audac-mtx-volume-card", name: mtxT("name_volume"), description: mtxT("desc_volume"), preview: true },
+  { type: "audac-mtx-source-card", name: mtxT("name_source"), description: mtxT("desc_source"), preview: true },
+  { type: "audac-mtx-bass-card", name: mtxT("name_bass"), description: mtxT("desc_bass"), preview: true },
+  { type: "audac-mtx-treble-card", name: mtxT("name_treble"), description: mtxT("desc_treble"), preview: true },
 );
 
 (function() {

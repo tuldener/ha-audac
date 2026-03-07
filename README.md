@@ -2,7 +2,7 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-2.4.0-green.svg?style=flat-square)](https://github.com/tuldener/Audac-Mtx-Control/releases/latest)
+[![Version](https://img.shields.io/badge/Version-2.4.1-green.svg?style=flat-square)](https://github.com/tuldener/Audac-Mtx-Control/releases/latest)
 
 Home Assistant Integration zur Steuerung von **Audac MTX** Audio-Matrizen (MTX48 / MTX88).
 
