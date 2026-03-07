@@ -108,10 +108,6 @@ class AudacMTXOptionsFlow(config_entries.OptionsFlow):
 
         schema_dict = {}
 
-        # Global display options – Bass & Höhen nebeneinander (beide booleans)
-        schema_dict[vol.Optional("global_bass_visible",   default=current_options.get("global_bass_visible",   True))] = bool
-        schema_dict[vol.Optional("global_treble_visible", default=current_options.get("global_treble_visible", True))] = bool
-
         for i in range(1, zones_count + 1):
             default_name = current_options.get(f"zone_{i}_name", f"Zone {i}")
             schema_dict[vol.Optional(f"zone_{i}_name", default=default_name)] = str

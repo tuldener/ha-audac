@@ -20,7 +20,7 @@ Kommuniziert direkt per TCP mit dem MTX-Geraet und liefert eine Bubble Card-insp
 - **Media Player Entities** - Jede Zone wird als eigener Media Player dargestellt
 - **Zonensteuerung** - Lautstaerke, Mute, Quellenauswahl pro Zone
 - **Zonenkopplung** - Zonen als Master/Slave koppeln (Checkboxen in den Optionen). Slave-Zonen werden automatisch synchronisiert und in der Kachel ausgeblendet
-- **Bass & Hoehen** - Anzeige und Steuerung der Klangregelung (+-14 dB), global ein-/ausblendbar
+- **Bass & Hoehen** - Anzeige und Steuerung der Klangregelung (+-14 dB), ein-/ausblendbar im Card-Editor
 - **Quellenauswahl** - Uebersichtliches Grid mit allen verfuegbaren Eingaengen
 - **Automatische Erkennung** - Die Card findet alle MTX-Zonen automatisch
 - **Benutzerdefinierte Namen** - Zonen und Quellen individuell benennen (ueber Optionen)
@@ -98,6 +98,11 @@ accent_color: ""
 
 ## Changelog
 
+### 2.3.3
+- Bass/Hoehen-Sichtbarkeit aus Integrations-Settings entfernt (war doppelt mit Card-Editor Toggle)
+- Card: Bass/Hoehen werden nur noch ueber den Card-Editor gesteuert (`show_bass_treble`)
+- Card: CARD_VERSION korrekt gebumpt fuer Browser-Cache-Busting
+
 ### 2.3.2
 - Fix: Duplizierter Code in coordinator.py entfernt – die zweite `_fetch_data` Definition (ohne Sync) ueberschrieb die korrekte erste
 - Fix: `async_shutdown` enthielt toten Code (versehentlich eingefuegter Duplikat-Block)
@@ -124,7 +129,7 @@ accent_color: ""
 - Fix: Zonen-Dropdown im Single-Card-Editor
 
 ### 2.1.0
-- Globale Bass/Treble-Sichtbarkeitsoptionen in der Integrationskonfiguration
+- Bass/Treble-Sichtbarkeit im Card-Editor (ersetzt seit 2.3.3 die Integrationsoption)
 
 ### 2.0.1
 - Fix: `_async_update_zone_visibility` war nicht definiert
