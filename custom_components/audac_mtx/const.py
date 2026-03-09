@@ -6,22 +6,43 @@ DEFAULT_SOURCE = "web"
 
 CARD_FILENAME = "audac-mtx-card.js"
 CARD_URL_PATH = f"/audac_mtx/{CARD_FILENAME}"
-CARD_VERSION = "2.5.0"
+CARD_VERSION = "3.0.0"
 CARD_URL_VERSIONED = f"{CARD_URL_PATH}?v={CARD_VERSION}"
 
 CONF_MODEL = "model"
 MODEL_MTX48 = "mtx48"
 MODEL_MTX88 = "mtx88"
+MODEL_XMP44 = "xmp44"
 
 MODEL_ZONES = {
     MODEL_MTX48: 4,
     MODEL_MTX88: 8,
 }
 
+MODEL_SLOTS = {
+    MODEL_XMP44: 4,
+}
+
 MODEL_NAMES = {
     MODEL_MTX48: "MTX48",
     MODEL_MTX88: "MTX88",
+    MODEL_XMP44: "XMP44",
 }
+
+# Device address per model (used in TCP protocol)
+MODEL_ADDRESS = {
+    MODEL_MTX48: "X001",
+    MODEL_MTX88: "X001",
+    MODEL_XMP44: "D001",
+}
+
+def is_mtx_model(model: str) -> bool:
+    """Check if the model is an MTX audio matrix."""
+    return model in (MODEL_MTX48, MODEL_MTX88)
+
+def is_xmp_model(model: str) -> bool:
+    """Check if the model is an XMP modular audio system."""
+    return model == MODEL_XMP44
 
 INPUT_NAMES = {
     0: "Off",

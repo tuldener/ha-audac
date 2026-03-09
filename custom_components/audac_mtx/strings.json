@@ -66,7 +66,15 @@
           "source_7_name": "Source 7 (Wall Panel WLI/MWX65)",
           "source_7_visible": "Source 7 Show",
           "source_8_name": "Source 8 (Wall Panel WMI)",
-          "source_8_visible": "Source 8 Show"
+          "source_8_visible": "Source 8 Show",
+          "slot_1_name": "Slot 1 – Name",
+          "slot_1_visible": "Slot 1 – Show",
+          "slot_2_name": "Slot 2 – Name",
+          "slot_2_visible": "Slot 2 – Show",
+          "slot_3_name": "Slot 3 – Name",
+          "slot_3_visible": "Slot 3 – Show",
+          "slot_4_name": "Slot 4 – Name",
+          "slot_4_visible": "Slot 4 – Show"
         }
       }
     }

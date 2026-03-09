@@ -10,19 +10,24 @@ from homeassistant.core import HomeAssistant
 from homeassistant.const import Platform
 import homeassistant.helpers.config_validation as cv
 
-from .const import DOMAIN, CARD_URL_PATH, CARD_URL_VERSIONED, CARD_VERSION, CARD_FILENAME, CONF_MODEL, MODEL_MTX48, MODEL_MTX88, MODEL_ZONES
+from .const import DOMAIN, CARD_URL_PATH, CARD_URL_VERSIONED, CARD_VERSION, CARD_FILENAME, CONF_MODEL, MODEL_MTX48, MODEL_MTX88, MODEL_XMP44, MODEL_ZONES, is_xmp_model
 from .coordinator import AudacMTXCoordinator
+from .xmp44_coordinator import XMP44Coordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
-PLATFORMS = [
+PLATFORMS_MTX = [
     Platform.MEDIA_PLAYER,
     Platform.SELECT,
     Platform.NUMBER,
     Platform.SWITCH,
     Platform.SENSOR,
+]
+
+PLATFORMS_XMP44 = [
+    Platform.MEDIA_PLAYER,
 ]
 
 
@@ -49,17 +54,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await _register_card(hass)
         hass.data[DOMAIN]["loaded"] = True
 
-    coordinator = AudacMTXCoordinator(hass, entry)
+    model = entry.data.get(CONF_MODEL, "mtx88")
+
+    if is_xmp_model(model):
+        coordinator = XMP44Coordinator(hass, entry)
+        platforms = PLATFORMS_XMP44
+    else:
+        coordinator = AudacMTXCoordinator(hass, entry)
+        platforms = PLATFORMS_MTX
+
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await hass.config_entries.async_forward_entry_setups(entry, platforms)
 
     entry.async_on_unload(
         entry.add_update_listener(_async_update_options)
     )
-    entry.async_on_unload(coordinator.async_shutdown)  # called automatically on unload
+    entry.async_on_unload(coordinator.async_shutdown)
 
     return True
 
@@ -187,8 +200,9 @@ async def _async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    model = entry.data.get(CONF_MODEL, "mtx88")
+    platforms = PLATFORMS_XMP44 if is_xmp_model(model) else PLATFORMS_MTX
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
     if unload_ok:
-        # coordinator.async_shutdown() is already registered via async_on_unload
         hass.data[DOMAIN].pop(entry.entry_id, None)
     return unload_ok

@@ -2,13 +2,15 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-2.5.0-green.svg?style=flat-square)](https://github.com/tuldener/Audac-Mtx-Control/releases/latest)
+[![Version](https://img.shields.io/badge/Version-3.0.0-green.svg?style=flat-square)](https://github.com/tuldener/Audac-Mtx-Control/releases/latest)
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tuldener&repository=Audac-Mtx-Control&category=integration)
 
-Home Assistant Integration zur Steuerung von **Audac MTX** Audio-Matrizen (MTX48 / MTX88).
+Home Assistant Integration zur Steuerung von **Audac** Audio-Geraeten:
+- **MTX48 / MTX88** – Audio-Matrix (Zonen-Steuerung)
+- **XMP44** – Modulares Audio-System (SourceCon Module)
 
-Kommuniziert direkt per TCP mit dem MTX-Geraet und liefert eine Bubble Card-inspirierte Lovelace Card mit.
+Kommuniziert direkt per TCP mit den Geraeten und liefert Bubble Card-inspirierte Lovelace Cards mit.
 
 ![Audac MTX Card Preview](https://raw.githubusercontent.com/tuldener/Audac-Mtx-Control/main/docs/card-preview.png)
 
@@ -34,13 +36,23 @@ Kommuniziert direkt per TCP mit dem MTX-Geraet und liefert eine Bubble Card-insp
 - **Card Editor** - Visuelle Konfiguration direkt im Lovelace-Editor
 - **Auto-Reconnect** - Exponentieller Backoff bei Verbindungsabbruch (max. 30 s)
 
+### XMP44 Features
+
+- **Automatische Modul-Erkennung** - Installierte SourceCon Module werden per GTPS-Befehl erkannt
+- **Media Player pro Slot** - Jedes installierte Modul wird als eigener Media Player dargestellt
+- **Unterstuetzte Module** - DMP40 (DAB/FM), TMP40 (FM), IMP40 (Internet Radio), MMP40 (Media Player), FMP40 (Voice File), BMP40 (Bluetooth), NMP40 (Network Player)
+- **Playback-Steuerung** - Play, Stop, Pause, Next, Previous fuer BMP40, MMP40, NMP40
+- **Song-Info** - Titel, Artist, Album, Dauer, Position fuer kompatible Module
+- **Tuner-Info** - Frequenz, Sendername, Signalstaerke, DAB/FM-Umschaltung
+- **Bluetooth** - Pairing-Status, verbundene Geraete
+
 ---
 
 ## Voraussetzungen
 
 - Home Assistant 2023.9.0 oder neuer
 - [HACS](https://hacs.xyz/) (empfohlen)
-- Audac MTX48 oder MTX88, erreichbar im Netzwerk (TCP Port 5001)
+- Audac MTX48, MTX88 oder XMP44, erreichbar im Netzwerk (TCP Port 5001)
 
 ---
 
@@ -65,7 +77,7 @@ Kommuniziert direkt per TCP mit dem MTX-Geraet und liefert eine Bubble Card-insp
 
 1. **Einstellungen** -> **Geraete & Dienste** -> **Integration hinzufuegen**
 2. Suche nach **Audac MTX**
-3. Gib IP-Adresse, Port (Standard: 5001) und Modell (MTX48 / MTX88) ein
+3. Gib IP-Adresse, Port (Standard: 5001) und Modell (MTX48 / MTX88 / XMP44) ein
 
 ---
 
@@ -101,6 +113,15 @@ accent_color: ""
 ---
 
 ## Changelog
+
+### 3.0.0
+- **XMP44 Unterstuetzung** - Audac XMP44 modulares Audio-System wird jetzt unterstuetzt
+- Neues Client-Framework: `AudacClient` Basisklasse fuer gemeinsames TCP-Protokoll
+- `MTXClient` und `XMP44Client` erben von `AudacClient`
+- Automatische Modul-Erkennung per GTPS-Befehl (DMP40, TMP40, IMP40, MMP40, FMP40, BMP40, NMP40)
+- Media Player Entity pro installiertem XMP44-Modul mit modulspezifischen Features
+- Config Flow: XMP44 als drittes Modell auswaehlbar
+- Keine Breaking Changes fuer bestehende MTX-Nutzer
 
 ### 2.5.0
 - Zonenkopplung als Dropdown statt Checkboxen (eine Slave-Zone kann nur einen Master haben)

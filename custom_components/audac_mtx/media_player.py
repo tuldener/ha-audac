@@ -1,4 +1,4 @@
-"""Media player entities for Audac MTX zones."""
+"""Media player entities for Audac MTX zones and XMP44 slots."""
 from __future__ import annotations
 
 import logging
@@ -14,9 +14,15 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, get_source_names
+from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, get_source_names, is_xmp_model
 from .coordinator import AudacMTXCoordinator
+from .xmp44_coordinator import XMP44Coordinator
+from .xmp44_client import (
+    MODULES_WITH_PLAYBACK, MODULES_WITH_SONG_INFO, MODULES_WITH_TUNER,
+    MODULE_NAMES, MODULE_DESCRIPTIONS, MODULE_EMPTY, MODULE_UNSUPPORTED, MODULE_BMP40,
+)
 from .entity import AudacMTXBaseEntity
 from .helpers import _async_update_zone_visibility
 
@@ -28,9 +34,22 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: AudacMTXCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = hass.data[DOMAIN][entry.entry_id]
     model = entry.data.get(CONF_MODEL, MODEL_MTX88)
-    zones_count = entry.data.get("zones", MODEL_ZONES.get(model, 8))
+
+    if is_xmp_model(model):
+        await _setup_xmp44(hass, entry, coordinator, async_add_entities)
+    else:
+        await _setup_mtx(hass, entry, coordinator, async_add_entities)
+
+
+async def _setup_mtx(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    coordinator: AudacMTXCoordinator,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    zones_count = entry.data.get("zones", MODEL_ZONES.get(entry.data.get(CONF_MODEL, MODEL_MTX88), 8))
 
     entities = []
     for zone in range(1, zones_count + 1):
@@ -235,4 +254,174 @@ class AudacMTXZone(AudacMTXBaseEntity, MediaPlayerEntity):
     async def async_routing_down(self) -> None:
         """Cycle to previous available input source (skips disabled inputs on device)."""
         await self.coordinator.client.set_routing_down(self._zone)
+        await self.coordinator.async_request_refresh()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# XMP44 Slot Entities
+# ═══════════════════════════════════════════════════════════════════════
+
+async def _setup_xmp44(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    coordinator: XMP44Coordinator,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    # Wait for first data to know which slots are populated
+    if coordinator.data:
+        entities = []
+        for slot, slot_data in coordinator.data.items():
+            entities.append(AudacXMP44Slot(coordinator, slot, entry, slot_data))
+        async_add_entities(entities)
+    else:
+        _LOGGER.warning("XMP44: no slot data available after first refresh")
+
+
+class AudacXMP44Slot(CoordinatorEntity, MediaPlayerEntity):
+    """Media player entity for a single XMP44 module slot."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: XMP44Coordinator,
+        slot: int,
+        entry: ConfigEntry,
+        initial_data: dict[str, Any],
+    ) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._entry = entry
+        self._module_type = initial_data.get("module_type", MODULE_EMPTY)
+        self._module_name = initial_data.get("module_name", f"Slot {slot}")
+
+        self._attr_unique_id = f"{entry.entry_id}_xmp44_slot_{slot}"
+        custom_name = entry.options.get(f"slot_{slot}_name")
+        self._attr_name = custom_name or f"{self._module_name} (Slot {slot})"
+
+        # Build supported features based on module type
+        features = MediaPlayerEntityFeature(0)
+        if self._module_type in MODULES_WITH_PLAYBACK:
+            features |= (
+                MediaPlayerEntityFeature.PLAY
+                | MediaPlayerEntityFeature.STOP
+                | MediaPlayerEntityFeature.PAUSE
+                | MediaPlayerEntityFeature.NEXT_TRACK
+                | MediaPlayerEntityFeature.PREVIOUS_TRACK
+            )
+        self._attr_supported_features = features
+
+    @property
+    def _slot_data(self) -> dict[str, Any]:
+        if self.coordinator.data and self._slot in self.coordinator.data:
+            return self.coordinator.data[self._slot]
+        return {}
+
+    @property
+    def state(self) -> MediaPlayerState:
+        data = self._slot_data
+        status = data.get("status", "unknown")
+        if status == "playing":
+            return MediaPlayerState.PLAYING
+        if status == "paused":
+            return MediaPlayerState.PAUSED
+        if status == "stopped":
+            return MediaPlayerState.IDLE
+        return MediaPlayerState.ON
+
+    @property
+    def media_title(self) -> str | None:
+        data = self._slot_data
+        song_info = data.get("song_info")
+        if song_info:
+            return song_info.get("title")
+        # For tuners, show program/station name
+        return data.get("program_name") or data.get("station_name")
+
+    @property
+    def media_artist(self) -> str | None:
+        data = self._slot_data
+        song_info = data.get("song_info")
+        if song_info:
+            return song_info.get("artist")
+        return None
+
+    @property
+    def media_album_name(self) -> str | None:
+        data = self._slot_data
+        song_info = data.get("song_info")
+        if song_info:
+            return song_info.get("album")
+        return None
+
+    @property
+    def media_duration(self) -> int | None:
+        data = self._slot_data
+        song_info = data.get("song_info")
+        if song_info:
+            return song_info.get("duration")
+        return None
+
+    @property
+    def media_position(self) -> int | None:
+        data = self._slot_data
+        song_info = data.get("song_info")
+        if song_info:
+            return song_info.get("position")
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self._slot_data
+        attrs: dict[str, Any] = {
+            "slot_number": self._slot,
+            "module_type": self._module_type,
+            "module_name": self._module_name,
+            "module_description": data.get("module_description", ""),
+            "output_gain": data.get("output_gain", 0),
+        }
+        # Tuner attributes
+        if "frequency" in data:
+            freq = data["frequency"]
+            attrs["frequency"] = freq
+            attrs["frequency_mhz"] = freq / 100 if freq else None
+        if "band" in data:
+            attrs["band"] = data["band"]
+        if "signal_strength" in data:
+            attrs["signal_strength"] = data["signal_strength"]
+        if "program_name" in data:
+            attrs["program_name"] = data["program_name"]
+        # Bluetooth attributes
+        if "bluetooth_info" in data:
+            attrs["bluetooth_info"] = data["bluetooth_info"]
+        if "connected_device" in data:
+            attrs["connected_device"] = data["connected_device"]
+        # Network player attributes
+        if "player_name" in data:
+            attrs["player_name"] = data["player_name"]
+        # Station name (internet radio)
+        if "station_name" in data:
+            attrs["station_name"] = data["station_name"]
+        return attrs
+
+    # ── Playback controls ───────────────────────────────────────────
+
+    async def async_media_play(self) -> None:
+        await self.coordinator.client.play(self._slot)
+        await self.coordinator.async_request_refresh()
+
+    async def async_media_stop(self) -> None:
+        await self.coordinator.client.stop(self._slot)
+        await self.coordinator.async_request_refresh()
+
+    async def async_media_pause(self) -> None:
+        await self.coordinator.client.pause(self._slot)
+        await self.coordinator.async_request_refresh()
+
+    async def async_media_next_track(self) -> None:
+        await self.coordinator.client.next_track(self._slot)
+        await self.coordinator.async_request_refresh()
+
+    async def async_media_previous_track(self) -> None:
+        await self.coordinator.client.previous_track(self._slot)
         await self.coordinator.async_request_refresh()
