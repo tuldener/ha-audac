@@ -12,7 +12,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, is_xmp_model
 from .xmp44_coordinator import XMP44Coordinator
-from .xmp44_client import MODULE_FMP40, MODULE_IMP40, MODULE_BMP40
+from .xmp44_client import MODULE_FMP40, MODULE_IMP40, MODULE_BMP40, MODULE_DMP40, MODULE_TMP40, MODULE_MMP40, MODULES_WITH_TUNER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +49,15 @@ async def async_setup_entry(
         # BMP40: Disconnect button
         if module_type == MODULE_BMP40:
             entities.append(BMP40DisconnectButton(coordinator, entry, slot))
+
+        # DMP40/TMP40: Search up/down, band switch (DMP40 only), preset buttons
+        if module_type in MODULES_WITH_TUNER:
+            entities.append(TunerSearchUpButton(coordinator, entry, slot))
+            entities.append(TunerSearchDownButton(coordinator, entry, slot))
+            for preset in range(1, 11):
+                entities.append(TunerPresetButton(coordinator, entry, slot, preset))
+            if module_type == MODULE_DMP40:
+                entities.append(TunerBandSwitchButton(coordinator, entry, slot))
 
     if entities:
         async_add_entities(entities)
@@ -220,4 +229,74 @@ class BMP40DisconnectButton(CoordinatorEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Disconnect the currently connected device."""
         await self.coordinator.client.disconnect_device(self._slot)
+        await self.coordinator.async_request_refresh()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# DMP40/TMP40 Tuner Buttons
+# ═══════════════════════════════════════════════════════════════════════
+
+class TunerSearchUpButton(CoordinatorEntity, ButtonEntity):
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:magnify-plus-outline"
+
+    def __init__(self, coordinator, entry: ConfigEntry, slot: int) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_search_up"
+        self._attr_name = "Sendersuche +"
+        self._attr_device_info = {"identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")}}
+
+    async def async_press(self) -> None:
+        await self.coordinator.client.search_up(self._slot)
+        await self.coordinator.async_request_refresh()
+
+
+class TunerSearchDownButton(CoordinatorEntity, ButtonEntity):
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:magnify-minus-outline"
+
+    def __init__(self, coordinator, entry: ConfigEntry, slot: int) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_search_down"
+        self._attr_name = "Sendersuche -"
+        self._attr_device_info = {"identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")}}
+
+    async def async_press(self) -> None:
+        await self.coordinator.client.search_down(self._slot)
+        await self.coordinator.async_request_refresh()
+
+
+class TunerBandSwitchButton(CoordinatorEntity, ButtonEntity):
+    """Toggle between FM and DAB (DMP40 only)."""
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:swap-horizontal"
+
+    def __init__(self, coordinator, entry: ConfigEntry, slot: int) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_band_switch"
+        self._attr_name = "DAB/FM Umschalten"
+        self._attr_device_info = {"identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")}}
+
+    async def async_press(self) -> None:
+        await self.coordinator.client.switch_band(self._slot)
+        await self.coordinator.async_request_refresh()
+
+
+class TunerPresetButton(CoordinatorEntity, ButtonEntity):
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:radio"
+
+    def __init__(self, coordinator, entry: ConfigEntry, slot: int, preset: int) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._preset = preset
+        self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_preset_{preset}"
+        self._attr_name = f"Preset {preset}"
+        self._attr_device_info = {"identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")}}
+
+    async def async_press(self) -> None:
+        await self.coordinator.client.select_preset(self._slot, self._preset)
         await self.coordinator.async_request_refresh()

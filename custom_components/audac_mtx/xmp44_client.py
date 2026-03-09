@@ -565,6 +565,13 @@ class XMP44Client(AudacClient):
                         slot_data["song_info"] = song_info
                     await asyncio.sleep(INTER_COMMAND_DELAY)
 
+                # MMP40: recorder mode
+                if type_id == MODULE_MMP40:
+                    rec_mode = await self.get_recorder_mode(slot)
+                    if rec_mode is not None:
+                        slot_data["recorder_mode"] = rec_mode
+                    await asyncio.sleep(INTER_COMMAND_DELAY)
+
                 # Tuner info
                 if type_id in MODULES_WITH_TUNER:
                     freq = await self.get_frequency(slot)
@@ -580,6 +587,11 @@ class XMP44Client(AudacClient):
                     signal = await self.get_signal_strength(slot)
                     if signal is not None:
                         slot_data["signal_strength"] = signal
+                    await asyncio.sleep(INTER_COMMAND_DELAY)
+
+                    stereo = await self.get_stereo_state(slot)
+                    if stereo is not None:
+                        slot_data["stereo"] = stereo
                     await asyncio.sleep(INTER_COMMAND_DELAY)
 
                     if type_id in MODULES_WITH_DAB:

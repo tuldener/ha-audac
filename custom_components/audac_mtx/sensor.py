@@ -61,7 +61,7 @@ async def _setup_xmp44_sensors(
     coordinator,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    from .xmp44_client import MODULE_BMP40, MODULE_NMP40
+    from .xmp44_client import MODULE_BMP40, MODULE_NMP40, MODULE_DMP40, MODULE_TMP40, MODULE_MMP40, MODULES_WITH_TUNER
     slots_count = entry.data.get("slots", 4)
     entities = []
 
@@ -79,6 +79,13 @@ async def _setup_xmp44_sensors(
         if module_type == MODULE_NMP40:
             entities.append(NMP40PlayerNameSensor(coordinator, entry, slot))
             entities.append(NMP40IPAddressSensor(coordinator, entry, slot))
+
+        if module_type in MODULES_WITH_TUNER:
+            entities.append(TunerFrequencySensor(coordinator, entry, slot))
+            entities.append(TunerProgramNameSensor(coordinator, entry, slot))
+            entities.append(TunerSignalStrengthSensor(coordinator, entry, slot))
+            if module_type == MODULE_DMP40:
+                entities.append(TunerBandSensor(coordinator, entry, slot))
 
     if entities:
         async_add_entities(entities)
@@ -251,3 +258,105 @@ class NMP40IPAddressSensor(CoordinatorEntity, SensorEntity):
         if not data or self._slot not in data:
             return None
         return data[self._slot].get("player_ip")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# DMP40/TMP40 Tuner Sensors
+# ═══════════════════════════════════════════════════════════════════════
+
+class TunerFrequencySensor(CoordinatorEntity, SensorEntity):
+    """Sensor showing the current tuner frequency in MHz."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:radio-tower"
+    _attr_native_unit_of_measurement = "MHz"
+
+    def __init__(self, coordinator, entry: ConfigEntry, slot: int) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_frequency"
+        self._attr_name = "Frequenz"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
+        }
+
+    @property
+    def native_value(self) -> float | None:
+        data = self.coordinator.data
+        if not data or self._slot not in data:
+            return None
+        freq = data[self._slot].get("frequency")
+        if freq is None:
+            return None
+        return round(freq / 100, 2)
+
+
+class TunerProgramNameSensor(CoordinatorEntity, SensorEntity):
+    """Sensor showing the current station/program name."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:radio"
+
+    def __init__(self, coordinator, entry: ConfigEntry, slot: int) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_program"
+        self._attr_name = "Sender"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
+        }
+
+    @property
+    def native_value(self) -> str | None:
+        data = self.coordinator.data
+        if not data or self._slot not in data:
+            return None
+        return data[self._slot].get("program_name")
+
+
+class TunerSignalStrengthSensor(CoordinatorEntity, SensorEntity):
+    """Sensor showing the tuner signal reception strength."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:signal"
+    _attr_native_unit_of_measurement = "%"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry: ConfigEntry, slot: int) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_signal"
+        self._attr_name = "Signalstärke"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
+        }
+
+    @property
+    def native_value(self) -> int | None:
+        data = self.coordinator.data
+        if not data or self._slot not in data:
+            return None
+        return data[self._slot].get("signal_strength")
+
+
+class TunerBandSensor(CoordinatorEntity, SensorEntity):
+    """Sensor showing the current band (DAB or FM) for DMP40."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:radio-fm"
+
+    def __init__(self, coordinator, entry: ConfigEntry, slot: int) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_band"
+        self._attr_name = "Band"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
+        }
+
+    @property
+    def native_value(self) -> str | None:
+        data = self.coordinator.data
+        if not data or self._slot not in data:
+            return None
+        return data[self._slot].get("band")

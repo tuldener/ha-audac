@@ -54,7 +54,7 @@ async def _setup_xmp44_switches(
     coordinator,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    from .xmp44_client import MODULE_BMP40
+    from .xmp44_client import MODULE_BMP40, MODULE_DMP40, MODULE_TMP40, MODULE_MMP40, MODULES_WITH_TUNER
     slots_count = entry.data.get("slots", 4)
     entities = []
 
@@ -67,6 +67,12 @@ async def _setup_xmp44_switches(
 
         if module_type == MODULE_BMP40:
             entities.append(BMP40PairingSwitch(coordinator, entry, slot))
+
+        if module_type in MODULES_WITH_TUNER:
+            entities.append(TunerStereoSwitch(coordinator, entry, slot))
+
+        if module_type == MODULE_MMP40:
+            entities.append(MMP40RecorderModeSwitch(coordinator, entry, slot))
 
     if entities:
         async_add_entities(entities)
@@ -137,4 +143,77 @@ class BMP40PairingSwitch(CoordinatorEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.coordinator.client.set_pairing(self._slot, False)
+        await self.coordinator.async_request_refresh()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# DMP40/TMP40 Stereo Switch
+# ═══════════════════════════════════════════════════════════════════════
+
+class TunerStereoSwitch(CoordinatorEntity, SwitchEntity):
+    """Switch to toggle stereo/mono output for DMP40/TMP40 tuners."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:surround-sound"
+
+    def __init__(self, coordinator, entry: ConfigEntry, slot: int) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_stereo"
+        self._attr_name = "Stereo"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
+        }
+
+    @property
+    def is_on(self) -> bool | None:
+        data = self.coordinator.data
+        if not data or self._slot not in data:
+            return None
+        return data[self._slot].get("stereo")
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self.coordinator.client.set_stereo(self._slot, True)
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self.coordinator.client.set_stereo(self._slot, False)
+        await self.coordinator.async_request_refresh()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# MMP40 Recorder Mode Switch
+# ═══════════════════════════════════════════════════════════════════════
+
+class MMP40RecorderModeSwitch(CoordinatorEntity, SwitchEntity):
+    """Switch to toggle between player and recorder mode on MMP40."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:microphone"
+
+    def __init__(self, coordinator, entry: ConfigEntry, slot: int) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._attr_unique_id = f"{entry.entry_id}_mmp40_slot{slot}_recorder"
+        self._attr_name = "Aufnahme-Modus"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
+        }
+
+    @property
+    def is_on(self) -> bool | None:
+        data = self.coordinator.data
+        if not data or self._slot not in data:
+            return None
+        mode = data[self._slot].get("recorder_mode")
+        if mode is None:
+            return None
+        return mode == "recorder"
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self.coordinator.client.set_recorder_mode(self._slot, True)
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self.coordinator.client.set_recorder_mode(self._slot, False)
         await self.coordinator.async_request_refresh()
