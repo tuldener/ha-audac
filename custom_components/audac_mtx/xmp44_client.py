@@ -362,9 +362,47 @@ class XMP44Client(AudacClient):
         """Get DB station name of currently playing station."""
         return await self._get_string_value(f"GSTN{slot}")
 
-    async def get_favourites(self, slot: int, start_index: int = 0) -> str | None:
-        """Get 10 favourite stations starting from index."""
-        return await self._get_string_value(f"GFAV{slot}")
+    async def get_favourites(self, slot: int, start_index: int = 0) -> list[dict[str, Any]]:
+        """Get favourite stations starting from index.
+
+        Returns list of {index, name, pointer} dicts.
+        Response format: index^name^pointer^index^name^pointer^...
+        """
+        resp = await self._send_and_receive(f"GFAV{slot}", str(start_index), timeout=5.0)
+        data = self._get_data_field(resp)
+        if not data or data == "+":
+            return []
+        values = data.split("^")
+        stations = []
+        # Groups of 3: index, name, pointer
+        for i in range(0, len(values) - 2, 3):
+            try:
+                name = values[i + 1].strip()
+                pointer = values[i + 2].strip()
+                if name and pointer:
+                    stations.append({
+                        "index": int(values[i]),
+                        "name": name,
+                        "pointer": pointer,
+                    })
+            except (ValueError, IndexError):
+                continue
+        return stations
+
+    async def get_all_favourites(self, slot: int) -> list[dict[str, Any]]:
+        """Load all favourites by paginating through the list (10 at a time)."""
+        all_stations: list[dict[str, Any]] = []
+        start = 0
+        for _ in range(10):  # Max 100 stations (10 pages of 10)
+            batch = await self.get_favourites(slot, start)
+            if not batch:
+                break
+            all_stations.extend(batch)
+            start += 10
+            await asyncio.sleep(INTER_COMMAND_DELAY)
+            if len(batch) < 10:
+                break
+        return all_stations
 
     async def select_station(self, slot: int, pointer: int) -> bool:
         """Select a favourite station by pointer."""
@@ -550,11 +588,16 @@ class XMP44Client(AudacClient):
                             slot_data["band"] = band
                         await asyncio.sleep(INTER_COMMAND_DELAY)
 
-                # Internet radio: station name
+                # Internet radio: station name + song name
                 if type_id == MODULE_IMP40:
                     station = await self.get_station_name(slot)
                     if station:
                         slot_data["station_name"] = station
+                    await asyncio.sleep(INTER_COMMAND_DELAY)
+
+                    song_name = await self.get_song_name(slot)
+                    if song_name:
+                        slot_data["song_name"] = song_name
                     await asyncio.sleep(INTER_COMMAND_DELAY)
 
                 # Bluetooth: pairing state

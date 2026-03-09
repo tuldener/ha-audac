@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN, CONF_MODEL, MODEL_XMP44
-from .xmp44_client import XMP44Client
+from .xmp44_client import XMP44Client, MODULE_IMP40
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,6 +38,9 @@ class XMP44Coordinator(DataUpdateCoordinator[dict[int, dict[str, Any]]]):
             port=entry.data.get("port", 5001),
         )
         self._apply_module_config()
+        # Cached favourites per IMP40 slot: {slot: [{name, pointer}, ...]}
+        self.favourites: dict[int, list[dict[str, Any]]] = {}
+        self._favourites_loaded = False
 
     def _apply_module_config(self) -> None:
         """Read module configuration from entry options and apply to client."""
@@ -71,13 +74,22 @@ class XMP44Coordinator(DataUpdateCoordinator[dict[int, dict[str, Any]]]):
 
     async def _fetch_data(self) -> dict[int, dict[str, Any]]:
         try:
+            # Load favourites once for IMP40 slots
+            if not self._favourites_loaded:
+                await self._load_favourites()
+                self._favourites_loaded = True
+
             slots = await self.client.get_all_slots()
             if not slots and self.data:
                 _LOGGER.debug("No slot data received, keeping previous state")
                 return self.data
             if not slots:
                 raise UpdateFailed("No slot data received from XMP44")
+
+            # Inject cached favourites into slot data
             for slot_id, slot_data in slots.items():
+                if slot_id in self.favourites:
+                    slot_data["favourites"] = self.favourites[slot_id]
                 _LOGGER.debug(
                     "XMP44 slot %d (%s): status=%s gain=%s",
                     slot_id,
@@ -99,6 +111,30 @@ class XMP44Coordinator(DataUpdateCoordinator[dict[int, dict[str, Any]]]):
                 _LOGGER.warning("XMP44 update error, keeping previous state: %s", err)
                 return self.data
             raise UpdateFailed(f"Error communicating with XMP44: {err}") from err
+
+    async def _load_favourites(self) -> None:
+        """Load favourites for all IMP40 slots (once)."""
+        for slot, type_id in self.client.module_types.items():
+            if type_id == MODULE_IMP40:
+                try:
+                    favs = await self.client.get_all_favourites(slot)
+                    if favs:
+                        self.favourites[slot] = favs
+                        _LOGGER.debug(
+                            "XMP44 IMP40 slot %d: loaded %d favourites",
+                            slot, len(favs),
+                        )
+                except Exception as err:
+                    _LOGGER.warning("Failed to load favourites for slot %d: %s", slot, err)
+
+    async def async_reload_favourites(self, slot: int) -> None:
+        """Reload favourites for a specific IMP40 slot."""
+        try:
+            favs = await self.client.get_all_favourites(slot)
+            if favs:
+                self.favourites[slot] = favs
+        except Exception as err:
+            _LOGGER.warning("Failed to reload favourites for slot %d: %s", slot, err)
 
     async def async_shutdown(self) -> None:
         await self.client.disconnect()

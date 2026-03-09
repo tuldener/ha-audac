@@ -21,7 +21,8 @@ from .coordinator import AudacMTXCoordinator
 from .xmp44_coordinator import XMP44Coordinator
 from .xmp44_client import (
     MODULES_WITH_PLAYBACK, MODULES_WITH_SONG_INFO, MODULES_WITH_TUNER,
-    MODULE_NAMES, MODULE_DESCRIPTIONS, MODULE_EMPTY, MODULE_UNSUPPORTED, MODULE_BMP40,
+    MODULE_NAMES, MODULE_DESCRIPTIONS, MODULE_EMPTY, MODULE_UNSUPPORTED,
+    MODULE_BMP40, MODULE_IMP40,
 )
 from .entity import AudacMTXBaseEntity
 from .helpers import _async_update_zone_visibility
@@ -334,7 +335,12 @@ class AudacXMP44Slot(CoordinatorEntity, MediaPlayerEntity):
                 | MediaPlayerEntityFeature.NEXT_TRACK
                 | MediaPlayerEntityFeature.PREVIOUS_TRACK
             )
+        if self._module_type == MODULE_IMP40:
+            features |= MediaPlayerEntityFeature.SELECT_SOURCE
         self._attr_supported_features = features
+
+        # IMP40: name→pointer mapping for source selection
+        self._source_pointer_map: dict[str, str] = {}
 
     @property
     def _slot_data(self) -> dict[str, Any]:
@@ -357,6 +363,9 @@ class AudacXMP44Slot(CoordinatorEntity, MediaPlayerEntity):
     @property
     def media_title(self) -> str | None:
         data = self._slot_data
+        # IMP40: song name (currently playing track)
+        if self._module_type == MODULE_IMP40:
+            return data.get("song_name")
         song_info = data.get("song_info")
         if song_info:
             return song_info.get("title")
@@ -394,6 +403,36 @@ class AudacXMP44Slot(CoordinatorEntity, MediaPlayerEntity):
         if song_info:
             return song_info.get("position")
         return None
+
+    # ── IMP40 source selection (favourites) ─────────────────────────
+
+    @property
+    def source(self) -> str | None:
+        """Current station name (IMP40)."""
+        if self._module_type != MODULE_IMP40:
+            return None
+        return self._slot_data.get("station_name")
+
+    @property
+    def source_list(self) -> list[str] | None:
+        """Favourite station names (IMP40)."""
+        if self._module_type != MODULE_IMP40:
+            return None
+        data = self._slot_data
+        favs = data.get("favourites", [])
+        if favs:
+            self._source_pointer_map = {f["name"]: f["pointer"] for f in favs}
+            return [f["name"] for f in favs]
+        return None
+
+    async def async_select_source(self, source: str) -> None:
+        """Select a favourite station by name (IMP40)."""
+        pointer = self._source_pointer_map.get(source)
+        if pointer is not None:
+            await self.coordinator.client.select_station(self._slot, int(pointer))
+            await self.coordinator.async_request_refresh()
+        else:
+            _LOGGER.warning("IMP40 slot %d: unknown source '%s'", self._slot, source)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
