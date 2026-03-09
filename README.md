@@ -2,7 +2,7 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-3.3.0-green.svg?style=flat-square)](https://github.com/tuldener/Audac-Mtx-Control/releases/latest)
+[![Version](https://img.shields.io/badge/Version-3.4.0-green.svg?style=flat-square)](https://github.com/tuldener/Audac-Mtx-Control/releases/latest)
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tuldener&repository=Audac-Mtx-Control&category=integration)
 

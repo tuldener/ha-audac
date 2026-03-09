@@ -624,6 +624,11 @@ class XMP44Client(AudacClient):
                         slot_data["player_name"] = pname
                     await asyncio.sleep(INTER_COMMAND_DELAY)
 
+                    pip = await self.get_player_ip(slot)
+                    if pip:
+                        slot_data["player_ip"] = pip
+                    await asyncio.sleep(INTER_COMMAND_DELAY)
+
             except ConnectionError:
                 raise
             except Exception as err:

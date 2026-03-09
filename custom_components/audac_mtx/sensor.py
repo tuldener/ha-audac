@@ -61,7 +61,7 @@ async def _setup_xmp44_sensors(
     coordinator,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    from .xmp44_client import MODULE_BMP40
+    from .xmp44_client import MODULE_BMP40, MODULE_NMP40
     slots_count = entry.data.get("slots", 4)
     entities = []
 
@@ -75,6 +75,10 @@ async def _setup_xmp44_sensors(
         if module_type == MODULE_BMP40:
             entities.append(BMP40ConnectedDeviceSensor(coordinator, entry, slot))
             entities.append(BMP40PairingStateSensor(coordinator, entry, slot))
+
+        if module_type == MODULE_NMP40:
+            entities.append(NMP40PlayerNameSensor(coordinator, entry, slot))
+            entities.append(NMP40IPAddressSensor(coordinator, entry, slot))
 
     if entities:
         async_add_entities(entities)
@@ -196,3 +200,54 @@ class BMP40PairingStateSensor(CoordinatorEntity, SensorEntity):
         if state is None:
             return None
         return PAIRING_STATE_MAP.get(state, f"Unbekannt ({state})")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# NMP40 Network Audio Player Sensors
+# ═══════════════════════════════════════════════════════════════════════
+
+class NMP40PlayerNameSensor(CoordinatorEntity, SensorEntity):
+    """Sensor showing the NMP40 player name."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:speaker-wireless"
+
+    def __init__(self, coordinator, entry: ConfigEntry, slot: int) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._attr_unique_id = f"{entry.entry_id}_nmp40_slot{slot}_player_name"
+        self._attr_name = "Player Name"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
+        }
+
+    @property
+    def native_value(self) -> str | None:
+        data = self.coordinator.data
+        if not data or self._slot not in data:
+            return None
+        return data[self._slot].get("player_name")
+
+
+class NMP40IPAddressSensor(CoordinatorEntity, SensorEntity):
+    """Sensor showing the NMP40 IP address."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:ip-network"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry: ConfigEntry, slot: int) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._attr_unique_id = f"{entry.entry_id}_nmp40_slot{slot}_ip"
+        self._attr_name = "IP-Adresse"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
+        }
+
+    @property
+    def native_value(self) -> str | None:
+        data = self.coordinator.data
+        if not data or self._slot not in data:
+            return None
+        return data[self._slot].get("player_ip")
