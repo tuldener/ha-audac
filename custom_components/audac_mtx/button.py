@@ -52,18 +52,8 @@ async def async_setup_entry(
         if trigger_count <= 0:
             continue
 
-        slot_name = entry.options.get(f"slot_{slot}_name", f"FMP40 (Slot {slot})")
-
-        # Parse trigger names (comma-separated)
-        trigger_names_raw = entry.options.get(f"slot_{slot}_trigger_names", "")
-        trigger_names = [n.strip() for n in trigger_names_raw.split(",") if n.strip()] if trigger_names_raw else []
-
         for trigger in range(1, trigger_count + 1):
-            # Use configured name or fallback to "Trigger X"
-            if trigger <= len(trigger_names) and trigger_names[trigger - 1]:
-                trigger_name = trigger_names[trigger - 1]
-            else:
-                trigger_name = f"Trigger {trigger}"
+            trigger_name = entry.options.get(f"slot_{slot}_trigger_{trigger}_name", f"Trigger {trigger}")
 
             entities.append(
                 FMP40TriggerStartButton(coordinator, entry, slot, trigger, trigger_name)
