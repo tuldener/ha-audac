@@ -74,7 +74,11 @@
           "slot_3_name": "Slot 3 – Name",
           "slot_3_visible": "Slot 3 – Anzeigen",
           "slot_4_name": "Slot 4 – Name",
-          "slot_4_visible": "Slot 4 – Anzeigen"
+          "slot_4_visible": "Slot 4 – Anzeigen",
+          "slot_1_module": "Slot 1 – Modul",
+          "slot_2_module": "Slot 2 – Modul",
+          "slot_3_module": "Slot 3 – Modul",
+          "slot_4_module": "Slot 4 – Modul"
         }
       }
     }

@@ -104,6 +104,20 @@ class XMP44Client(AudacClient):
 
     # ── Module detection ────────────────────────────────────────────
 
+    def set_module_config(self, module_config: dict[int, int]) -> None:
+        """Set module types from config options (manual configuration).
+
+        Args:
+            module_config: {slot: module_type_id} mapping from user config.
+        """
+        self._module_types = {}
+        self._module_names = {}
+        for slot, type_id in module_config.items():
+            self._module_types[slot] = type_id
+            self._module_names[slot] = MODULE_NAMES.get(type_id)
+            _LOGGER.debug("XMP44 slot %d configured as: %s (%s)",
+                          slot, MODULE_NAMES.get(type_id, "empty"), type_id)
+
     async def detect_modules(self) -> dict[int, int]:
         """Query GTPS to detect installed modules and their versions.
 
@@ -474,9 +488,9 @@ class XMP44Client(AudacClient):
             raise ConnectionError("get_all_slots timed out") from None
 
     async def _get_all_slots_inner(self) -> dict[int, dict[str, Any]]:
-        # Detect modules if not yet done
         if not self._module_types:
-            await self.detect_modules()
+            _LOGGER.warning("XMP44: No module configuration set — configure modules in integration options")
+            return {}
 
         slots: dict[int, dict[str, Any]] = {}
         for slot in range(1, XMP44_SLOTS + 1):

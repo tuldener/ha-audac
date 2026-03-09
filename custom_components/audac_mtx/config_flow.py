@@ -70,10 +70,6 @@ class AudacMTXConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             try:
                 await client.connect()
-                if is_xmp_model(model):
-                    await client.detect_modules()
-                else:
-                    await client.get_version()
                 await client.disconnect()
 
                 await self.async_set_unique_id(f"audac_mtx_{user_input[CONF_HOST]}")
@@ -127,9 +123,32 @@ class AudacMTXOptionsFlow(config_entries.OptionsFlow):
         schema_dict = {}
 
         if is_xmp_model(model):
-            # XMP44: Slot names and visibility
+            # XMP44: Module selection, slot names and visibility
+            from .xmp44_client import MODULE_DESCRIPTIONS
             slots_count = self._config_entry.data.get("slots", MODEL_SLOTS.get(model, 4))
+
+            module_options = [
+                selector.SelectOptionDict(value="0", label="Kein Modul"),
+                selector.SelectOptionDict(value="1", label="DMP40 (DAB/DAB+ & FM Tuner)"),
+                selector.SelectOptionDict(value="2", label="TMP40 (FM Tuner)"),
+                selector.SelectOptionDict(value="3", label="MMP40 (Media Player/Recorder)"),
+                selector.SelectOptionDict(value="4", label="IMP40 (Internet Radio)"),
+                selector.SelectOptionDict(value="6", label="FMP40 (Voice File)"),
+                selector.SelectOptionDict(value="8", label="BMP40 (Bluetooth)"),
+                selector.SelectOptionDict(value="9", label="NMP40 (Network Player)"),
+            ]
+
             for i in range(1, slots_count + 1):
+                default_module = current_options.get(f"slot_{i}_module", "0")
+                if isinstance(default_module, int):
+                    default_module = str(default_module)
+                schema_dict[vol.Optional(f"slot_{i}_module", default=default_module)] = selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=module_options,
+                        multiple=False,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                )
                 default_name = current_options.get(f"slot_{i}_name", f"Slot {i}")
                 schema_dict[vol.Optional(f"slot_{i}_name", default=default_name)] = str
                 default_visible = current_options.get(f"slot_{i}_visible", True)

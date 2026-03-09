@@ -37,6 +37,21 @@ class XMP44Coordinator(DataUpdateCoordinator[dict[int, dict[str, Any]]]):
             host=entry.data["host"],
             port=entry.data.get("port", 5001),
         )
+        self._apply_module_config()
+
+    def _apply_module_config(self) -> None:
+        """Read module configuration from entry options and apply to client."""
+        slots_count = self.entry.data.get("slots", 4)
+        module_config: dict[int, int] = {}
+        for slot in range(1, slots_count + 1):
+            module_str = self.entry.options.get(f"slot_{slot}_module", "0")
+            try:
+                module_type = int(module_str)
+            except (ValueError, TypeError):
+                module_type = 0
+            if module_type and module_type not in (15, 255):
+                module_config[slot] = module_type
+        self.client.set_module_config(module_config)
 
     async def _async_update_data(self) -> dict[int, dict[str, Any]]:
         try:
