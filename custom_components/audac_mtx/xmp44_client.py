@@ -600,7 +600,7 @@ class XMP44Client(AudacClient):
                         slot_data["song_name"] = song_name
                     await asyncio.sleep(INTER_COMMAND_DELAY)
 
-                # Bluetooth: pairing state
+                # Bluetooth: info, connected device, pairing state
                 if type_id == MODULE_BMP40:
                     bt_info = await self.get_bluetooth_info(slot)
                     if bt_info:
@@ -610,6 +610,11 @@ class XMP44Client(AudacClient):
                     connected = await self.get_connected_device(slot)
                     if connected:
                         slot_data["connected_device"] = connected
+                    await asyncio.sleep(INTER_COMMAND_DELAY)
+
+                    pairing = await self.get_pairing_state(slot)
+                    if pairing is not None:
+                        slot_data["pairing_state"] = pairing
                     await asyncio.sleep(INTER_COMMAND_DELAY)
 
                 # NMP40: player name + IP

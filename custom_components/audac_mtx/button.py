@@ -12,7 +12,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, is_xmp_model
 from .xmp44_coordinator import XMP44Coordinator
-from .xmp44_client import MODULE_FMP40, MODULE_IMP40
+from .xmp44_client import MODULE_FMP40, MODULE_IMP40, MODULE_BMP40
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,6 +45,10 @@ async def async_setup_entry(
         # IMP40: Station buttons from cached favourites
         if module_type == MODULE_IMP40:
             _setup_imp40_buttons(entities, coordinator, entry, slot)
+
+        # BMP40: Disconnect button
+        if module_type == MODULE_BMP40:
+            entities.append(BMP40DisconnectButton(coordinator, entry, slot))
 
     if entities:
         async_add_entities(entities)
@@ -184,4 +188,36 @@ class IMP40StationButton(CoordinatorEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Select this station."""
         await self.coordinator.client.select_station(self._slot, self._pointer)
+        await self.coordinator.async_request_refresh()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# BMP40 Bluetooth Disconnect Button
+# ═══════════════════════════════════════════════════════════════════════
+
+class BMP40DisconnectButton(CoordinatorEntity, ButtonEntity):
+    """Button to disconnect the currently connected Bluetooth device."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:bluetooth-off"
+
+    def __init__(
+        self,
+        coordinator: XMP44Coordinator,
+        entry: ConfigEntry,
+        slot: int,
+    ) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._entry = entry
+
+        self._attr_unique_id = f"{entry.entry_id}_bmp40_slot{slot}_disconnect"
+        self._attr_name = "Disconnect"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
+        }
+
+    async def async_press(self) -> None:
+        """Disconnect the currently connected device."""
+        await self.coordinator.client.disconnect_device(self._slot)
         await self.coordinator.async_request_refresh()

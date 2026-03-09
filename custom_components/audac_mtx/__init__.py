@@ -29,6 +29,8 @@ PLATFORMS_MTX = [
 PLATFORMS_XMP44 = [
     Platform.MEDIA_PLAYER,
     Platform.BUTTON,
+    Platform.SWITCH,
+    Platform.SENSOR,
 ]
 
 

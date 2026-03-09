@@ -1,4 +1,4 @@
-"""Switch entities for Audac MTX zone mute control."""
+"""Switch entities for Audac MTX zone mute and XMP44 BMP40 pairing."""
 from __future__ import annotations
 
 import logging
@@ -9,8 +9,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, MODEL_ZONES
+from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, is_xmp_model
 from .coordinator import AudacMTXCoordinator
 from .entity import AudacMTXBaseEntity
 from .helpers import _async_update_zone_visibility
@@ -23,15 +24,52 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: AudacMTXCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    model = entry.data.get(CONF_MODEL, MODEL_MTX88)
+
+    if is_xmp_model(model):
+        await _setup_xmp44_switches(hass, entry, coordinator, async_add_entities)
+    else:
+        await _setup_mtx_switches(hass, entry, coordinator, async_add_entities)
+
+
+async def _setup_mtx_switches(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    coordinator: AudacMTXCoordinator,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     model = entry.data.get(CONF_MODEL, MODEL_MTX88)
     zones_count = entry.data.get("zones", MODEL_ZONES.get(model, 8))
-
     entities = []
     for zone in range(1, zones_count + 1):
         entities.append(AudacMTXMuteSwitch(coordinator, zone, entry))
     async_add_entities(entities)
     await _async_update_zone_visibility(hass, entry, zones_count, DOMAIN)
+
+
+async def _setup_xmp44_switches(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    coordinator,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    from .xmp44_client import MODULE_BMP40
+    slots_count = entry.data.get("slots", 4)
+    entities = []
+
+    for slot in range(1, slots_count + 1):
+        module_str = entry.options.get(f"slot_{slot}_module", "0")
+        try:
+            module_type = int(module_str)
+        except (ValueError, TypeError):
+            module_type = 0
+
+        if module_type == MODULE_BMP40:
+            entities.append(BMP40PairingSwitch(coordinator, entry, slot))
+
+    if entities:
+        async_add_entities(entities)
 
 
 class AudacMTXMuteSwitch(AudacMTXBaseEntity, SwitchEntity):
@@ -57,4 +95,46 @@ class AudacMTXMuteSwitch(AudacMTXBaseEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.coordinator.client.set_mute(self._zone, False)
+        await self.coordinator.async_request_refresh()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# BMP40 Bluetooth Pairing Switch
+# ═══════════════════════════════════════════════════════════════════════
+
+class BMP40PairingSwitch(CoordinatorEntity, SwitchEntity):
+    """Switch to enable/disable BMP40 Bluetooth pairing mode."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:bluetooth-settings"
+
+    def __init__(self, coordinator, entry: ConfigEntry, slot: int) -> None:
+        super().__init__(coordinator)
+        self._slot = slot
+        self._entry = entry
+
+        self._attr_unique_id = f"{entry.entry_id}_bmp40_slot{slot}_pairing"
+        self._attr_name = "Pairing"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
+        }
+
+    @property
+    def is_on(self) -> bool | None:
+        data = self.coordinator.data
+        if not data or self._slot not in data:
+            return None
+        slot_data = data[self._slot]
+        # Pairing state: 3=enabled, 4=disabled, 0=success
+        pairing = slot_data.get("pairing_state")
+        if pairing is None:
+            return None
+        return pairing == 3  # enabled
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self.coordinator.client.set_pairing(self._slot, True)
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self.coordinator.client.set_pairing(self._slot, False)
         await self.coordinator.async_request_refresh()
