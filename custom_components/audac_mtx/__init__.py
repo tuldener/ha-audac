@@ -51,8 +51,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {"loaded": False})
 
     if not hass.data[DOMAIN].get("loaded"):
-        await _register_card(hass)
-        hass.data[DOMAIN]["loaded"] = True
+        hass.data[DOMAIN]["loaded"] = True  # Set early to prevent race condition
+        try:
+            await _register_card(hass)
+        except RuntimeError as err:
+            if "already registered" in str(err):
+                _LOGGER.debug("Card path already registered, skipping: %s", err)
+            else:
+                raise
 
     model = entry.data.get(CONF_MODEL, "mtx88")
 
