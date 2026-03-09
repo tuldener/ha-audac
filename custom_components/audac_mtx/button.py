@@ -54,12 +54,22 @@ async def async_setup_entry(
 
         slot_name = entry.options.get(f"slot_{slot}_name", f"FMP40 (Slot {slot})")
 
+        # Parse trigger names (comma-separated)
+        trigger_names_raw = entry.options.get(f"slot_{slot}_trigger_names", "")
+        trigger_names = [n.strip() for n in trigger_names_raw.split(",") if n.strip()] if trigger_names_raw else []
+
         for trigger in range(1, trigger_count + 1):
+            # Use configured name or fallback to "Trigger X"
+            if trigger <= len(trigger_names) and trigger_names[trigger - 1]:
+                trigger_name = trigger_names[trigger - 1]
+            else:
+                trigger_name = f"Trigger {trigger}"
+
             entities.append(
-                FMP40TriggerStartButton(coordinator, entry, slot, trigger, slot_name)
+                FMP40TriggerStartButton(coordinator, entry, slot, trigger, trigger_name)
             )
             entities.append(
-                FMP40TriggerStopButton(coordinator, entry, slot, trigger, slot_name)
+                FMP40TriggerStopButton(coordinator, entry, slot, trigger, trigger_name)
             )
 
     if entities:
@@ -79,7 +89,7 @@ class FMP40TriggerStartButton(CoordinatorEntity, ButtonEntity):
         entry: ConfigEntry,
         slot: int,
         trigger: int,
-        slot_name: str,
+        trigger_name: str,
     ) -> None:
         super().__init__(coordinator)
         self._slot = slot
@@ -87,7 +97,7 @@ class FMP40TriggerStartButton(CoordinatorEntity, ButtonEntity):
         self._entry = entry
 
         self._attr_unique_id = f"{entry.entry_id}_fmp40_slot{slot}_trigger{trigger}_start"
-        self._attr_name = f"Trigger {trigger}"
+        self._attr_name = trigger_name
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }
@@ -109,7 +119,7 @@ class FMP40TriggerStopButton(CoordinatorEntity, ButtonEntity):
         entry: ConfigEntry,
         slot: int,
         trigger: int,
-        slot_name: str,
+        trigger_name: str,
     ) -> None:
         super().__init__(coordinator)
         self._slot = slot
@@ -117,7 +127,7 @@ class FMP40TriggerStopButton(CoordinatorEntity, ButtonEntity):
         self._entry = entry
 
         self._attr_unique_id = f"{entry.entry_id}_fmp40_slot{slot}_trigger{trigger}_stop"
-        self._attr_name = f"Trigger {trigger} Stop"
+        self._attr_name = f"{trigger_name} Stop"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }

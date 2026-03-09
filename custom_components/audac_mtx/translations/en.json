@@ -82,7 +82,11 @@
           "slot_1_triggers": "Slot 1 – Trigger count (FMP40)",
           "slot_2_triggers": "Slot 2 – Trigger count (FMP40)",
           "slot_3_triggers": "Slot 3 – Trigger count (FMP40)",
-          "slot_4_triggers": "Slot 4 – Trigger count (FMP40)"
+          "slot_4_triggers": "Slot 4 – Trigger count (FMP40)",
+          "slot_1_trigger_names": "Slot 1 – Trigger names (comma-separated)",
+          "slot_2_trigger_names": "Slot 2 – Trigger names (comma-separated)",
+          "slot_3_trigger_names": "Slot 3 – Trigger names (comma-separated)",
+          "slot_4_trigger_names": "Slot 4 – Trigger names (comma-separated)"
         }
       }
     }
