@@ -145,7 +145,15 @@ class AudacClient:
                     parts = line.split("|")
                     if len(parts) < 5:
                         continue
+                    # Determine response command field position:
+                    # Directed: #|source|address|CMD|data|checksum  → parts[3]
+                    # Broadcast: #|ALL|address|CMD|data|checksum    → parts[3]
                     if parts[1].strip() == "ALL":
+                        # Broadcast response — accept if command matches
+                        resp_cmd = parts[3].strip()
+                        if resp_cmd in expected_cmds:
+                            _LOGGER.debug("Audac matched (ALL) %s: %s", expected_cmds, line[:120])
+                            return line
                         continue
                     resp_cmd = parts[3].strip()
                     if resp_cmd in expected_cmds:
