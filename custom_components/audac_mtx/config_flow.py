@@ -158,6 +158,13 @@ class AudacMTXOptionsFlow(config_entries.OptionsFlow):
                 schema_dict[vol.Optional(f"slot_{i}_name", default=default_name)] = str
                 default_visible = current_options.get(f"slot_{i}_visible", True)
                 schema_dict[vol.Optional(f"slot_{i}_visible", default=default_visible)] = bool
+                # FMP40: number of triggers (0-50, only used for FMP40 modules)
+                default_triggers = current_options.get(f"slot_{i}_triggers", 0)
+                schema_dict[vol.Optional(f"slot_{i}_triggers", default=default_triggers)] = selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0, max=50, step=1, mode=selector.NumberSelectorMode.BOX,
+                    )
+                )
         else:
             # MTX: Zone names, visibility, coupling, and source configuration
             zones_count = MODEL_ZONES.get(model, 8)

@@ -78,7 +78,11 @@
           "slot_1_module": "Slot 1 – Modul",
           "slot_2_module": "Slot 2 – Modul",
           "slot_3_module": "Slot 3 – Modul",
-          "slot_4_module": "Slot 4 – Modul"
+          "slot_4_module": "Slot 4 – Modul",
+          "slot_1_triggers": "Slot 1 – Anzahl Trigger (FMP40)",
+          "slot_2_triggers": "Slot 2 – Anzahl Trigger (FMP40)",
+          "slot_3_triggers": "Slot 3 – Anzahl Trigger (FMP40)",
+          "slot_4_triggers": "Slot 4 – Anzahl Trigger (FMP40)"
         }
       }
     }
