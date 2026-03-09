@@ -114,29 +114,32 @@ class AudacMTXOptionsFlow(config_entries.OptionsFlow):
             default_visible = current_options.get(f"zone_{i}_visible", True)
             schema_dict[vol.Optional(f"zone_{i}_visible", default=default_visible)] = bool
 
-            # Kopplung als Checkboxen (SelectSelector multi, mode=list)
-            # Migration: altes Format zone_i_linked_to (int) → neues Format zone_i_links (List[str])
-            old_linked = current_options.get(f"zone_{i}_linked_to", 0)
-            if old_linked and old_linked != 0:
-                migration_default = [str(old_linked)]
+            # Kopplung als Dropdown (eine Slave-Zone kann nur einen Master haben)
+            # Migration: altes List-Format zone_i_links (List[str]) → neues Format zone_i_link (str)
+            old_links = current_options.get(f"zone_{i}_links")
+            if isinstance(old_links, list) and len(old_links) > 0:
+                migration_default = str(old_links[0])
             else:
-                migration_default = []
-            default_links = current_options.get(f"zone_{i}_links", migration_default)
-            if isinstance(default_links, int):
-                default_links = [str(default_links)] if default_links != 0 else []
+                old_linked = current_options.get(f"zone_{i}_linked_to", 0)
+                migration_default = str(old_linked) if old_linked and old_linked != 0 else "0"
+            default_link = current_options.get(f"zone_{i}_link", migration_default)
+            if isinstance(default_link, int):
+                default_link = str(default_link)
 
             coupling_options = [
+                selector.SelectOptionDict(value="0", label="Keine Kopplung"),
+            ] + [
                 selector.SelectOptionDict(
                     value=str(j),
                     label=current_options.get(f"zone_{j}_name", f"Zone {j}"),
                 )
                 for j in range(1, zones_count + 1) if j != i
             ]
-            schema_dict[vol.Optional(f"zone_{i}_links", default=default_links)] = selector.SelectSelector(
+            schema_dict[vol.Optional(f"zone_{i}_link", default=default_link)] = selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=coupling_options,
-                    multiple=True,
-                    mode=selector.SelectSelectorMode.LIST,
+                    multiple=False,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             )
 

@@ -47,12 +47,24 @@ class AudacMTXCoordinator(DataUpdateCoordinator[dict[int, dict[str, Any]]]):
     def _get_zone_links(self) -> dict[int, int]:
         """Return {slave_zone: master_zone} mapping from current options.
 
-        Supports both the new format (zone_z_links: List[str]) and the
-        old format (zone_z_linked_to: int) for backward compatibility.
+        Supports three formats for backward compatibility:
+        - zone_z_link: str   (current: dropdown, "0" = no link)
+        - zone_z_links: List[str]  (old: checkbox multi-select)
+        - zone_z_linked_to: int    (legacy)
         """
         links = {}
         for z in range(1, self._zones_count + 1):
-            # New format: list of zone-number strings
+            # Current format: single string from dropdown
+            zone_link = self.entry.options.get(f"zone_{z}_link")
+            if zone_link is not None:
+                try:
+                    master = int(zone_link)
+                    if master and master != z:
+                        links[z] = master
+                except (ValueError, TypeError):
+                    pass
+                continue
+            # Old format: list of zone-number strings
             zone_links = self.entry.options.get(f"zone_{z}_links")
             if zone_links and isinstance(zone_links, list) and len(zone_links) > 0:
                 try:
@@ -62,7 +74,7 @@ class AudacMTXCoordinator(DataUpdateCoordinator[dict[int, dict[str, Any]]]):
                 except (ValueError, TypeError):
                     pass
                 continue
-            # Old format: single integer
+            # Legacy format: single integer
             master = self.entry.options.get(f"zone_{z}_linked_to", 0)
             if master and master != z:
                 links[z] = master

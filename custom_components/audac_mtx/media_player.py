@@ -79,8 +79,10 @@ class AudacMTXZone(AudacMTXBaseEntity, MediaPlayerEntity):
     def _get_slave_zones(self) -> list[int]:
         """Return zone numbers that are linked/slaved to this master zone.
 
-        Supports both the new format (zone_z_links: List[str]) and the old
-        format (zone_z_linked_to: int) for backward compatibility.
+        Supports three formats for backward compatibility:
+        - zone_z_link: str   (current: dropdown, "0" = no link)
+        - zone_z_links: List[str]  (old: checkbox multi-select)
+        - zone_z_linked_to: int    (legacy)
         """
         from .const import MODEL_MTX88, MODEL_ZONES, CONF_MODEL
         model = self._entry.data.get(CONF_MODEL, MODEL_MTX88)
@@ -89,21 +91,49 @@ class AudacMTXZone(AudacMTXBaseEntity, MediaPlayerEntity):
         for z in range(1, zones_count + 1):
             if z == self._zone:
                 continue
-            links = self._entry.options.get(f"zone_{z}_links", None)
+            # Current format: single string from dropdown
+            link = self._entry.options.get(f"zone_{z}_link")
+            if link is not None:
+                try:
+                    if int(link) == self._zone:
+                        result.append(z)
+                except (ValueError, TypeError):
+                    pass
+                continue
+            # Old format: list of zone-number strings
+            links = self._entry.options.get(f"zone_{z}_links")
             if links is not None:
-                # New format: list of zone-number strings
                 if str(self._zone) in links:
                     result.append(z)
-            else:
-                # Old format: integer (0 = no link)
-                if self._entry.options.get(f"zone_{z}_linked_to", 0) == self._zone:
-                    result.append(z)
+                continue
+            # Legacy format: integer
+            if self._entry.options.get(f"zone_{z}_linked_to", 0) == self._zone:
+                result.append(z)
         return result
 
     async def _mirror_to_slaves(self, coro_factory) -> None:
         """Send the same command to all slave zones linked to this master."""
         for slave_zone in self._get_slave_zones():
             await coro_factory(slave_zone)
+
+    def _get_linked_to(self) -> int:
+        """Return the master zone number this zone is linked to, or 0."""
+        # Current format: single string from dropdown
+        link = self._entry.options.get(f"zone_{self._zone}_link")
+        if link is not None:
+            try:
+                return int(link)
+            except (ValueError, TypeError):
+                return 0
+        # Old format: list of zone-number strings
+        links = self._entry.options.get(f"zone_{self._zone}_links")
+        if links and isinstance(links, list) and len(links) > 0:
+            try:
+                return int(links[0])
+            except (ValueError, TypeError):
+                return 0
+        # Legacy format: integer
+        return self._entry.options.get(f"zone_{self._zone}_linked_to", 0)
 
     @property
     def state(self) -> MediaPlayerState:
@@ -153,7 +183,7 @@ class AudacMTXZone(AudacMTXBaseEntity, MediaPlayerEntity):
             "routing": data.get("routing", 0),
             "zone_number": self._zone,
             "zone_visible": self._entry.options.get(f"zone_{self._zone}_visible", True),
-            "linked_to": [int(z) for z in self._entry.options.get(f"zone_{self._zone}_links", [])] or self._entry.options.get(f"zone_{self._zone}_linked_to", 0),
+            "linked_to": self._get_linked_to(),
             "linked_zones": self._get_slave_zones(),
         }
 

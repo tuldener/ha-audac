@@ -2,7 +2,7 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-2.4.9-green.svg?style=flat-square)](https://github.com/tuldener/Audac-Mtx-Control/releases/latest)
+[![Version](https://img.shields.io/badge/Version-2.5.0-green.svg?style=flat-square)](https://github.com/tuldener/Audac-Mtx-Control/releases/latest)
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tuldener&repository=Audac-Mtx-Control&category=integration)
 
@@ -19,7 +19,7 @@ Kommuniziert direkt per TCP mit dem MTX-Geraet und liefert eine Bubble Card-insp
 - **Direkte TCP-Verbindung** - Kommuniziert direkt mit dem Audac MTX (Port 5001)
 - **Media Player Entities** - Jede Zone wird als eigener Media Player dargestellt
 - **Zonensteuerung** - Lautstaerke, Mute, Quellenauswahl pro Zone
-- **Zonenkopplung** - Zonen als Master/Slave koppeln (Checkboxen in den Optionen). Slave-Zonen werden automatisch synchronisiert und in der Kachel ausgeblendet. Gekoppelte Zonennamen werden neben dem Link-Symbol angezeigt
+- **Zonenkopplung** - Zonen als Master/Slave koppeln (Dropdown in den Optionen). Slave-Zonen werden automatisch synchronisiert und in der Kachel ausgeblendet. Gekoppelte Zonennamen werden neben dem Link-Symbol angezeigt
 - **Bass & Hoehen** - Anzeige und Steuerung der Klangregelung (+-14 dB), ein-/ausblendbar im Card-Editor
 - **Quellenauswahl** - Uebersichtliches Grid mit allen verfuegbaren Eingaengen
 - **Automatische Erkennung** - Die Card findet alle MTX-Zonen automatisch
@@ -101,6 +101,11 @@ accent_color: ""
 ---
 
 ## Changelog
+
+### 2.5.0
+- Zonenkopplung als Dropdown statt Checkboxen (eine Slave-Zone kann nur einen Master haben)
+- Default: "Keine Kopplung"
+- Volle Rueckwaertskompatibilitaet mit altem Checkbox- und Legacy-Format
 
 ### 2.4.7
 - Fix: `issue_tracker` in manifest.json hinzugefuegt (HACS Pflichtfeld)
