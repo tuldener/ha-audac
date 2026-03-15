@@ -70,7 +70,6 @@ class AudacMTXConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             try:
                 await client.connect()
-                await client.disconnect()
 
                 await self.async_set_unique_id(f"audac_mtx_{user_input[CONF_HOST]}")
                 self._abort_if_unique_id_configured()

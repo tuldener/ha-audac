@@ -77,7 +77,7 @@ function mtxLinkedNames(hass, zoneNumbers) {
 // MUST be at top: HA reads this synchronously to know which custom elements to wait for
 window.customCards = window.customCards || [];
 [
-  { type: "audac-mtx-card",        name: "Audac MTX",         description: "Multi-zone Audac MTX audio matrix card", preview: true },
+  { type: "audac-mtx-card",        name: "Audac MTX",         description: "Multi-zone Audac MTX audio matrix card", preview: true, documentationURL: "https://github.com/FX6W9WZK/ha-audac" },
   { type: "audac-mtx-more-info",   name: "Audac MTX Zones",   description: "Zone overview (compact)", preview: false },
   { type: "audac-mtx-volume-card", name: "Audac MTX Volume",  description: "Volume control for a zone", preview: false },
   { type: "audac-mtx-source-card", name: "Audac MTX Source",  description: "Source selection for a zone", preview: false },
@@ -1410,15 +1410,6 @@ Promise.all([
 ]).then(() => {
   window.dispatchEvent(new Event("ll-rebuild"));
 });
-
-window.customCards = window.customCards || [];
-window.customCards.push(
-  { type: "audac-mtx-card", name: "Audac MTX", description: mtxT("desc_main"), preview: true, documentationURL: "https://github.com/FX6W9WZK/ha-audac" },
-  { type: "audac-mtx-volume-card", name: mtxT("name_volume"), description: mtxT("desc_volume"), preview: true },
-  { type: "audac-mtx-source-card", name: mtxT("name_source"), description: mtxT("desc_source"), preview: true },
-  { type: "audac-mtx-bass-card", name: mtxT("name_bass"), description: mtxT("desc_bass"), preview: true },
-  { type: "audac-mtx-treble-card", name: mtxT("name_treble"), description: mtxT("desc_treble"), preview: true },
-);
 
 (function() {
   const patchMoreInfo = () => {

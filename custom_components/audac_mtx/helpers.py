@@ -28,9 +28,28 @@ async def _async_update_zone_visibility(
 
     for zone in range(1, zones_count + 1):
         zone_visible = entry.options.get(f"zone_{zone}_visible", True)
-        # Slave zones (linked to a master) are always hidden
-        linked_to = entry.options.get(f"zone_{zone}_linked_to", 0)
-        is_slave = linked_to != 0
+        # Slave zones (linked to a master) are always hidden.
+        # Supports all three option formats for backward compatibility:
+        #   zone_z_link      (current: dropdown, "0" = no link)
+        #   zone_z_links     (old: checkbox multi-select list)
+        #   zone_z_linked_to (legacy: single int)
+        master = 0
+        zone_link = entry.options.get(f"zone_{zone}_link")
+        if zone_link is not None:
+            try:
+                master = int(zone_link)
+            except (ValueError, TypeError):
+                master = 0
+        elif entry.options.get(f"zone_{zone}_links"):
+            links_list = entry.options[f"zone_{zone}_links"]
+            if isinstance(links_list, list) and len(links_list) > 0:
+                try:
+                    master = int(links_list[0])
+                except (ValueError, TypeError):
+                    master = 0
+        else:
+            master = entry.options.get(f"zone_{zone}_linked_to", 0)
+        is_slave = master != 0 and master != zone
         should_be_visible = zone_visible and not is_slave
 
         suffixes = (
