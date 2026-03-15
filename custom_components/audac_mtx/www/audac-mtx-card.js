@@ -78,7 +78,6 @@ function mtxLinkedNames(hass, zoneNumbers) {
 window.customCards = window.customCards || [];
 [
   { type: "audac-mtx-card",        name: "Audac MTX",         description: "Multi-zone Audac MTX audio matrix card", preview: true, documentationURL: "https://github.com/FX6W9WZK/ha-audac" },
-  { type: "audac-mtx-more-info",   name: "Audac MTX Zones",   description: "Zone overview (compact)", preview: false },
   { type: "audac-mtx-volume-card", name: "Audac MTX Volume",  description: "Volume control for a zone", preview: false },
   { type: "audac-mtx-source-card", name: "Audac MTX Source",  description: "Source selection for a zone", preview: false },
   { type: "audac-mtx-bass-card",   name: "Audac MTX Bass",    description: "Bass control for a zone", preview: false },
@@ -1135,7 +1134,7 @@ class AudacMTXMoreInfo extends HTMLElement {
     return mtxAutoDiscover(this._hass).map((entityId) => ({
       entityId,
       entity: this._hass.states[entityId],
-      name: this._hass.states[entityId].attributes.friendly_name || entityId, _shortName: mtxShortName(this._hass.states[entityId].attributes.friendly_name || entityId, this._config.title),
+      name: this._hass.states[entityId].attributes.friendly_name || entityId, _shortName: mtxShortName(this._hass.states[entityId].attributes.friendly_name || entityId, undefined),
     }));
   }
 
