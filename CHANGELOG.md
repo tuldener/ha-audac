@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.9.0
+- **Resilient state handling**: Entities keep their last known state for up to 3 consecutive poll failures before becoming unavailable. Previously, a single failed response could mark entities as unavailable.
+- Applies to both MTX and XMP44 coordinators
+- Failure counter resets on every successful poll
+- Log messages now show failure count (e.g. `failure 2/3`)
+
 ## 3.8.9
 - Fix: Lovelace resource warning at startup — defer registration to `homeassistant_started` when collection not ready yet (instead of logging a false warning)
 - Downgraded fallback message from WARNING to DEBUG
