@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.8.7
+- Static previews for Volume, Source, Bass, Treble sub-cards in the HA card picker
+- Removed `audac-mtx-more-info` from card picker (more-info panel, not a standalone card)
+- Fixed `_config.title` crash in MoreInfo `_getZones()`
+- Linked Audac to audac.eu in README
+
 ## 3.8.6
 - Fix: `helpers.py` now checks all 3 link formats (`zone_z_link`, `zone_z_links`, `zone_z_linked_to`) for slave zone visibility — was only checking legacy format
 - Fix: Removed duplicate `window.customCards` registration at end of `audac-mtx-card.js` causing double entries in HA card picker
