@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.8.8
+- Fix: IMP40 station buttons duplicate unique_id — now includes pointer for guaranteed uniqueness
+- Added deduplication for IMP40 favourites list
+
 ## 3.8.7
 - Static previews for Volume, Source, Bass, Treble sub-cards in the HA card picker
 - Removed `audac-mtx-more-info` from card picker (more-info panel, not a standalone card)

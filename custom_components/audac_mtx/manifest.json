@@ -9,5 +9,5 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/FX6W9WZK/ha-audac/issues",
   "requirements": [],
-  "version": "3.8.7"
+  "version": "3.8.8"
 }

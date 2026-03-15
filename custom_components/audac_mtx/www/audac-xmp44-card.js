@@ -1,4 +1,4 @@
-const XMP44_CARD_VERSION = "3.8.7";
+const XMP44_CARD_VERSION = "3.8.8";
 
 // ─── i18n ───────────────────────────────────────────────────────────
 const _xmpLang = () => {

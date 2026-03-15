@@ -146,10 +146,12 @@ def _setup_imp40_buttons(
         _LOGGER.debug("IMP40 slot %d: no favourites loaded yet, skipping buttons", slot)
         return
 
+    seen_pointers: set[str] = set()
     for fav in favs:
         name = fav.get("name", "")
         pointer = fav.get("pointer", "")
-        if name and pointer:
+        if name and pointer and pointer not in seen_pointers:
+            seen_pointers.add(pointer)
             entities.append(IMP40StationButton(coordinator, entry, slot, name, pointer))
 
 
@@ -240,7 +242,7 @@ class IMP40StationButton(CoordinatorEntity, ButtonEntity):
 
         # Sanitize station name for unique_id (keep alphanumeric + underscore)
         safe_name = "".join(c if c.isalnum() else "_" for c in station_name.lower()).strip("_")
-        self._attr_unique_id = f"{entry.entry_id}_imp40_slot{slot}_station_{safe_name}"
+        self._attr_unique_id = f"{entry.entry_id}_imp40_slot{slot}_station_{pointer}_{safe_name}"
         self._attr_name = station_name
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},

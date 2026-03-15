@@ -6,7 +6,7 @@ DEFAULT_SOURCE = "web"
 
 CARD_FILENAME = "audac-mtx-card.js"
 CARD_URL_PATH = f"/audac_mtx/{CARD_FILENAME}"
-CARD_VERSION = "3.8.7"
+CARD_VERSION = "3.8.8"
 CARD_URL_VERSIONED = f"{CARD_URL_PATH}?v={CARD_VERSION}"
 
 XMP44_CARD_FILENAME = "audac-xmp44-card.js"
