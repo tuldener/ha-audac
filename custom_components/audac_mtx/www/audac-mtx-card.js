@@ -1413,7 +1413,7 @@ Promise.all([
 
 window.customCards = window.customCards || [];
 window.customCards.push(
-  { type: "audac-mtx-card", name: "Audac MTX", description: mtxT("desc_main"), preview: true, documentationURL: "https://github.com/tuldener/Audac-Mtx-Control" },
+  { type: "audac-mtx-card", name: "Audac MTX", description: mtxT("desc_main"), preview: true, documentationURL: "https://github.com/FX6W9WZK/ha-audac" },
   { type: "audac-mtx-volume-card", name: mtxT("name_volume"), description: mtxT("desc_volume"), preview: true },
   { type: "audac-mtx-source-card", name: mtxT("name_source"), description: mtxT("desc_source"), preview: true },
   { type: "audac-mtx-bass-card", name: mtxT("name_bass"), description: mtxT("desc_bass"), preview: true },

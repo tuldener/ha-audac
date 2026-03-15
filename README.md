@@ -2,9 +2,9 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-3.8.5-green.svg?style=flat-square)](https://github.com/tuldener/ha-audac/releases/latest)
+[![Version](https://img.shields.io/badge/Version-3.8.5-green.svg?style=flat-square)](https://github.com/FX6W9WZK/ha-audac/releases/latest)
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tuldener&repository=ha-audac&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=FX6W9WZK&repository=ha-audac&category=integration)
 
 Home Assistant Integration zur Steuerung von **Audac** Audio-Geraeten:
 - **MTX48 / MTX88** – Audio-Matrix (Zonen-Steuerung)
@@ -12,7 +12,7 @@ Home Assistant Integration zur Steuerung von **Audac** Audio-Geraeten:
 
 Kommuniziert direkt per TCP mit den Geraeten und liefert Bubble Card-inspirierte Lovelace Cards mit.
 
-![Audac MTX Card Preview](https://raw.githubusercontent.com/tuldener/ha-audac/main/docs/card-preview.png)
+![Audac MTX Card Preview](https://raw.githubusercontent.com/FX6W9WZK/ha-audac/main/docs/card-preview.png)
 
 ---
 
@@ -62,7 +62,7 @@ Kommuniziert direkt per TCP mit den Geraeten und liefert Bubble Card-inspirierte
 
 1. Oeffne HACS in Home Assistant
 2. Gehe zu **Integrationen** -> drei Punkte -> **Benutzerdefinierte Repositories**
-3. Fuege `https://github.com/tuldener/ha-audac` hinzu, Kategorie **Integration**
+3. Fuege `https://github.com/FX6W9WZK/ha-audac` hinzu, Kategorie **Integration**
 4. Installiere **Audac**
 5. Starte Home Assistant neu
 
