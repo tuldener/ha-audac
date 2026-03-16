@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.9.3
+- Auto-cleanup of legacy IMP40 station entities (old unique_id format without pointer)
+- No more duplicate "Nicht verfügbar" buttons after upgrading from v3.8.7 or earlier
+
 ## 3.9.2
 - Icon now uses dark rounded background with white logo — works on both light and dark HA themes
 - HA frontend only requests `icon.png` (not `dark_icon.png`), so the icon must work universally

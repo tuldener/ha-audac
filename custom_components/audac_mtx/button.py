@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -15,6 +17,39 @@ from .xmp44_coordinator import XMP44Coordinator
 from .xmp44_client import MODULE_FMP40, MODULE_IMP40, MODULE_BMP40, MODULE_DMP40, MODULE_TMP40, MODULE_MMP40, MODULES_WITH_TUNER
 
 _LOGGER = logging.getLogger(__name__)
+
+# Regex for the NEW unique_id format: ..._imp40_slotN_station_{pointer}_{safe_name}
+_IMP40_NEW_UID = re.compile(r"_imp40_slot\d+_station_\d+_")
+# Regex for ANY IMP40 station unique_id
+_IMP40_ANY_UID = re.compile(r"_imp40_slot\d+_station_")
+
+
+async def _cleanup_legacy_imp40_entities(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove IMP40 station entities that use the old unique_id format (without pointer).
+
+    Old format: {entry_id}_imp40_slot{N}_station_{safe_name}
+    New format: {entry_id}_imp40_slot{N}_station_{pointer}_{safe_name}
+    """
+    ent_reg = er.async_get(hass)
+    removed = 0
+
+    for ent_entry in list(ent_reg.entities.values()):
+        if ent_entry.config_entry_id != entry.entry_id:
+            continue
+        uid = ent_entry.unique_id or ""
+        # Must be an IMP40 station entity ...
+        if not _IMP40_ANY_UID.search(uid):
+            continue
+        # ... but NOT in the new format (with pointer)
+        if _IMP40_NEW_UID.search(uid):
+            continue
+        # This is an old-format entity — remove it
+        _LOGGER.info("Removing legacy IMP40 station entity: %s (uid=%s)", ent_entry.entity_id, uid)
+        ent_reg.async_remove(ent_entry.entity_id)
+        removed += 1
+
+    if removed:
+        _LOGGER.info("Cleaned up %d legacy IMP40 station entities", removed)
 
 
 async def async_setup_entry(
@@ -62,6 +97,10 @@ async def _setup_xmp44_buttons(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     slots_count = entry.data.get("slots", 4)
+
+    # Clean up old IMP40 station entities that used the legacy unique_id format
+    # (without pointer). Old: ..._station_{safe_name}, New: ..._station_{pointer}_{safe_name}
+    await _cleanup_legacy_imp40_entities(hass, entry)
 
     entities: list[ButtonEntity] = []
 
