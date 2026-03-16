@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.10.0
+- **New: `audac-xmp44-slot-card`** — individual Lovelace card per XMP44 module
+- Supports all module types (BMP40, IMP40, FMP40, DMP40, TMP40, MMP40, NMP40)
+- Entity picker in card editor with auto-discover
+- Always-expanded controls (no accordion click needed)
+- Same Bubble Card-inspired design as the main XMP44 card
+- Static preview in card picker
+
 ## 3.9.3
 - Auto-cleanup of legacy IMP40 station entities (old unique_id format without pointer)
 - No more duplicate "Nicht verfügbar" buttons after upgrading from v3.8.7 or earlier
