@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.13.1
+- **Fix: Lovelace resource registration for HA 2026.3+** — used `hasattr(ll_data, "resources")` attribute access instead of dict-style lookup (HA changed from dict to object)
+- **Fix: blocking `read_text` call** — version reading now uses `async_add_executor_job` to avoid event loop warning
+- Simplified and more robust `_register_lovelace_resource` implementation
+
 ## 3.13.0
 - **Auto-versioning**: Card version is now single-source-of-truth in the JS files — `__init__.py` reads it dynamically, no more manual syncing of `CARD_VERSION` in `const.py`
 - **Bubble Card sizing** for both MTX and XMP44 cards:

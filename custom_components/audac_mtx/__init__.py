@@ -71,13 +71,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     if not hass.data[DOMAIN].get("loaded"):
         hass.data[DOMAIN]["loaded"] = True  # Set early to prevent race condition
-        try:
-            await _register_card(hass)
-        except RuntimeError as err:
-            if "already registered" in str(err):
-                _LOGGER.debug("Card path already registered, skipping: %s", err)
-            else:
-                raise
+        await _register_card(hass)
 
     model = entry.data.get(CONF_MODEL, "mtx88")
 
@@ -109,8 +103,9 @@ async def _register_card(hass: HomeAssistant) -> None:
         return
 
     # Read versions from JS files (single source of truth)
-    mtx_version = _read_card_version(www_dir / CARD_FILENAME)
-    xmp44_version = _read_card_version(www_dir / XMP44_CARD_FILENAME)
+    # Use executor to avoid blocking the event loop
+    mtx_version = await hass.async_add_executor_job(_read_card_version, www_dir / CARD_FILENAME)
+    xmp44_version = await hass.async_add_executor_job(_read_card_version, www_dir / XMP44_CARD_FILENAME)
 
     mtx_url_versioned = f"{CARD_URL_PATH}?v={mtx_version}"
     xmp44_url_versioned = f"{XMP44_CARD_URL_PATH}?v={xmp44_version}"
@@ -131,7 +126,13 @@ async def _register_card(hass: HomeAssistant) -> None:
                 cache_headers=False,
             )
         )
-    await hass.http.async_register_static_paths(paths)
+    try:
+        await hass.http.async_register_static_paths(paths)
+    except RuntimeError as err:
+        if "already registered" in str(err):
+            _LOGGER.debug("Audac static paths already registered: %s", err)
+        else:
+            raise
     _LOGGER.debug("Registered Audac static paths: %s (v%s), %s (v%s)", CARD_URL_PATH, mtx_version, XMP44_CARD_URL_PATH, xmp44_version)
 
     # Register as Lovelace storage resources
@@ -142,68 +143,46 @@ async def _register_card(hass: HomeAssistant) -> None:
 
 async def _register_lovelace_resource(hass: HomeAssistant, url_path: str, url_versioned: str, label: str = "") -> None:
     """Register a card as a Lovelace storage resource."""
-    resource_collection = None
     try:
+        from homeassistant.components.lovelace import DOMAIN as LL_DOMAIN
         from homeassistant.components.lovelace.resources import ResourceStorageCollection
-        lovelace_data = hass.data.get("lovelace")
-        if isinstance(lovelace_data, dict):
-            candidate = lovelace_data.get("resources")
-            if isinstance(candidate, ResourceStorageCollection):
-                resource_collection = candidate
 
-        if resource_collection is None:
-            candidate = hass.data.get("lovelace_resources")
-            if isinstance(candidate, ResourceStorageCollection):
-                resource_collection = candidate
-
-        if resource_collection is None and isinstance(lovelace_data, dict):
-            for key, val in lovelace_data.items():
-                if isinstance(val, ResourceStorageCollection):
-                    resource_collection = val
-                    break
-
-    except ImportError:
-        pass
-
-    if resource_collection is None:
-        if not hass.is_running:
-            _up = url_path
-            _uv = url_versioned
-            _lb = label
-
-            async def _deferred_register(_event) -> None:
-                await _register_lovelace_resource(hass, _up, _uv, _lb)
-
-            hass.bus.async_listen_once("homeassistant_started", _deferred_register)
-            _LOGGER.debug("Audac %s: Lovelace not ready yet, deferring to homeassistant_started", label)
+        ll_data = hass.data.get(LL_DOMAIN)
+        if not ll_data or not hasattr(ll_data, "resources"):
+            if not hass.is_running:
+                async def _deferred(_event) -> None:
+                    await _register_lovelace_resource(hass, url_path, url_versioned, label)
+                hass.bus.async_listen_once("homeassistant_started", _deferred)
+                _LOGGER.debug("Audac %s: Lovelace not ready, deferring to homeassistant_started", label)
+            else:
+                _LOGGER.debug("Audac %s: Lovelace resources not available (YAML mode?). Add manually: %s", label, url_versioned)
             return
-        _LOGGER.debug(
-            "Audac %s: Lovelace resource collection not found — card was likely already added manually or via UI. URL=%s",
-            label, url_versioned,
-        )
-        return
 
-    try:
-        existing = [
-            r for r in resource_collection.async_items()
-            if r.get("url", "").startswith(url_path)
-        ]
+        resources: ResourceStorageCollection = ll_data.resources
+        if not resources.loaded:
+            _LOGGER.debug("Audac %s: Lovelace resources not yet loaded, deferring", label)
+            async def _deferred(_event) -> None:
+                await _register_lovelace_resource(hass, url_path, url_versioned, label)
+            hass.bus.async_listen_once("homeassistant_started", _deferred)
+            return
 
-        if not existing:
-            await resource_collection.async_create_item(
-                {"res_type": "module", "url": url_versioned}
-            )
-            _LOGGER.info("Registered Audac %s card as Lovelace resource: %s", label, url_versioned)
+        # Find existing resource by URL path
+        existing = None
+        for item in resources.async_items():
+            if url_path in item.get("url", ""):
+                existing = item
+                break
+
+        if existing:
+            if existing["url"] != url_versioned:
+                await resources.async_update_item(existing["id"], {"url": url_versioned})
+                _LOGGER.info("Updated Audac %s card resource to %s", label, url_versioned)
+            else:
+                _LOGGER.debug("Audac %s card resource up-to-date: %s", label, url_versioned)
         else:
-            for item in existing:
-                if item.get("url") != url_versioned:
-                    await resource_collection.async_update_item(
-                        item["id"],
-                        {"res_type": "module", "url": url_versioned},
-                    )
-                    _LOGGER.info("Updated Audac %s card resource to %s", label, url_versioned)
-                else:
-                    _LOGGER.debug("Audac %s card resource up-to-date: %s", label, url_versioned)
+            await resources.async_create_item({"res_type": "module", "url": url_versioned})
+            _LOGGER.info("Registered Audac %s card as Lovelace resource: %s", label, url_versioned)
+
     except Exception as err:
         _LOGGER.warning("Could not register Audac %s Lovelace resource: %s", label, err)
 
