@@ -1,4 +1,4 @@
-const CARD_VERSION = "3.14.0";
+const CARD_VERSION = "3.14.1";
 
 // ─── i18n ───────────────────────────────────────────────────────────
 const _mtxLang = () => {
@@ -544,9 +544,9 @@ class AudacMTXCard extends HTMLElement {
           color: ${t.textSec}; transition: all 0.3s ease; flex-shrink: 0;
         }
         .zone-icon.active { background: linear-gradient(135deg, ${t.accent}, ${t.accentSecond}); color: white; }
-        .zone-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-        .zone-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .zone-detail { font-size: 11px; color: ${t.textSec}; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .zone-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+        .zone-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .zone-detail { font-size: 11px; color: ${t.textSec}; font-weight: 500; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .zone-badge {
           font-size: 13px; font-weight: 700; color: ${t.accent};
           background: ${t.accentLight}; padding: 4px 10px; border-radius: 10px;
@@ -1290,9 +1290,9 @@ class AudacMTXMoreInfo extends HTMLElement {
           color: ${t.textSec}; transition: all 0.3s ease; flex-shrink: 0;
         }
         .zone-icon.active { background: linear-gradient(135deg, ${t.accent}, ${t.accentSecond}); color: white; }
-        .zone-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-        .zone-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .zone-detail { font-size: 11px; color: ${t.textSec}; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .zone-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+        .zone-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .zone-detail { font-size: 11px; color: ${t.textSec}; font-weight: 500; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .zone-badge {
           font-size: 13px; font-weight: 700; color: ${t.accent};
           background: ${t.accentLight}; padding: 4px 10px; border-radius: 10px;

@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.14.1
+- Compact zone/slot row sizing to match HA standard row height (~56px)
+- Zone/slot name: 14px → 13px (matches Bubble Card)
+- Info column gap: 2px → 1px
+- Detail text line-height: 1.2 (tighter)
+
 ## 3.14.0
 - **HA theme integration**: Cards now use `--ha-card-background`, `--ha-card-border-radius`, `--ha-card-border-color`, and `--ha-card-box-shadow` CSS variables
 - Removed hardcoded opaque backgrounds and `backdrop-filter: blur()` from card containers

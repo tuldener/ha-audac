@@ -1,4 +1,4 @@
-const XMP44_CARD_VERSION = "3.14.0";
+const XMP44_CARD_VERSION = "3.14.1";
 
 // ─── i18n ───────────────────────────────────────────────────────────
 const _xmpLang = () => {
@@ -242,9 +242,9 @@ class AudacXMP44Card extends HTMLElement {
           color: ${t.textSec}; transition: all 0.3s ease; flex-shrink: 0;
         }
         .slot-icon.active { background: linear-gradient(135deg, ${t.accent}, #a78bfa); color: white; }
-        .slot-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-        .slot-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .slot-detail { font-size: 11px; color: ${t.textSec}; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .slot-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+        .slot-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .slot-detail { font-size: 11px; color: ${t.textSec}; font-weight: 500; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .slot-badge {
           font-size: 11px; font-weight: 600; color: ${t.accent};
           background: ${t.accentLight}; padding: 4px 10px; border-radius: 10px;
@@ -275,7 +275,7 @@ class AudacXMP44Card extends HTMLElement {
           text-align: center; padding: 4px 0 8px;
         }
         .xmp-song-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .xmp-song-artist { font-size: 11px; color: ${t.textSec}; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .xmp-song-artist { font-size: 11px; color: ${t.textSec}; font-weight: 500; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .xmp-info-row {
           display: flex; align-items: center; justify-content: space-between;
           font-size: 12px; color: ${t.textSec}; padding: 4px 0;
