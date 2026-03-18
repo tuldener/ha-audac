@@ -111,10 +111,18 @@ class XMP44Coordinator(DataUpdateCoordinator[dict[int, dict[str, Any]]]):
 
     async def _fetch_data(self) -> dict[int, dict[str, Any]]:
         try:
-            # Load favourites once for IMP40 slots
+            # Load favourites for IMP40 slots — retry on each poll until successful
             if not self._favourites_loaded:
-                await self._load_favourites()
-                self._favourites_loaded = True
+                has_imp40 = any(t == MODULE_IMP40 for t in self.client.module_types.values())
+                if has_imp40:
+                    await self._load_favourites()
+                    if self.favourites:
+                        self._favourites_loaded = True
+                        _LOGGER.info("XMP44: Favourites loaded for %d IMP40 slot(s)", len(self.favourites))
+                    else:
+                        _LOGGER.debug("XMP44: No favourites loaded yet, will retry next poll")
+                else:
+                    self._favourites_loaded = True  # No IMP40 modules, nothing to load
 
             slots = await self.client.get_all_slots()
             if not slots and self.data:

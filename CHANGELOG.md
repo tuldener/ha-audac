@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.15.1
+- **Fix: IMP40 favourites not loading** — `_favourites_loaded` was set to `True` even when loading failed (e.g. after connection recovery). Favourites now retry every poll until successfully loaded.
+
 ## 3.15.0
 - **Refined failure strategy** for both MTX and XMP44 coordinators:
   - **0–2 failures**: Keep last known state, continue normal polling (60s/30s)
