@@ -18,6 +18,20 @@ from .xmp44_client import MODULE_FMP40, MODULE_IMP40, MODULE_BMP40, MODULE_DMP40
 
 _LOGGER = logging.getLogger(__name__)
 
+
+class AudacButtonBase(CoordinatorEntity, ButtonEntity):
+    """Base class for all Audac buttons.
+
+    Buttons are fire-and-forget commands — they don't read state from the
+    coordinator. They should always be available as long as the integration
+    is loaded, regardless of coordinator poll status.
+    """
+
+    @property
+    def available(self) -> bool:
+        """Buttons are always available — they send commands, not read state."""
+        return True
+
 # Regex for the NEW unique_id format: ..._imp40_slotN_station_{pointer}_{safe_name}
 _IMP40_NEW_UID = re.compile(r"_imp40_slot\d+_station_\d+_")
 # Regex for ANY IMP40 station unique_id
@@ -194,7 +208,7 @@ def _setup_imp40_buttons(
             entities.append(IMP40StationButton(coordinator, entry, slot, name, pointer))
 
 
-class FMP40TriggerStartButton(CoordinatorEntity, ButtonEntity):
+class FMP40TriggerStartButton(AudacButtonBase):
     """Button to start an FMP40 voice file trigger."""
 
     _attr_has_entity_name = True
@@ -225,7 +239,7 @@ class FMP40TriggerStartButton(CoordinatorEntity, ButtonEntity):
         await self.coordinator.client.trigger_start(self._slot, self._trigger)
 
 
-class FMP40TriggerStopButton(CoordinatorEntity, ButtonEntity):
+class FMP40TriggerStopButton(AudacButtonBase):
     """Button to stop an FMP40 voice file trigger."""
 
     _attr_has_entity_name = True
@@ -260,8 +274,13 @@ class FMP40TriggerStopButton(CoordinatorEntity, ButtonEntity):
 # IMP40 Internet Radio Station Buttons
 # ═══════════════════════════════════════════════════════════════════════
 
-class IMP40StationButton(CoordinatorEntity, ButtonEntity):
-    """Button to select an IMP40 internet radio station."""
+class IMP40StationButton(AudacButtonBase):
+    """Button to select an IMP40 internet radio station.
+
+    Always available — favourites don't depend on live state data.
+    They are fire-and-forget commands that work as long as the
+    integration is loaded.
+    """
 
     _attr_has_entity_name = True
     _attr_icon = "mdi:radio"
@@ -298,7 +317,7 @@ class IMP40StationButton(CoordinatorEntity, ButtonEntity):
 # BMP40 Bluetooth Disconnect Button
 # ═══════════════════════════════════════════════════════════════════════
 
-class BMP40DisconnectButton(CoordinatorEntity, ButtonEntity):
+class BMP40DisconnectButton(AudacButtonBase):
     """Button to disconnect the currently connected Bluetooth device."""
 
     _attr_has_entity_name = True
@@ -331,7 +350,7 @@ class BMP40DisconnectButton(CoordinatorEntity, ButtonEntity):
 # DMP40/TMP40 Tuner Buttons
 # ═══════════════════════════════════════════════════════════════════════
 
-class TunerSearchUpButton(CoordinatorEntity, ButtonEntity):
+class TunerSearchUpButton(AudacButtonBase):
     _attr_has_entity_name = True
     _attr_icon = "mdi:magnify-plus-outline"
 
@@ -348,7 +367,7 @@ class TunerSearchUpButton(CoordinatorEntity, ButtonEntity):
         await self.coordinator.async_request_refresh()
 
 
-class TunerSearchDownButton(CoordinatorEntity, ButtonEntity):
+class TunerSearchDownButton(AudacButtonBase):
     _attr_has_entity_name = True
     _attr_icon = "mdi:magnify-minus-outline"
 
@@ -365,7 +384,7 @@ class TunerSearchDownButton(CoordinatorEntity, ButtonEntity):
         await self.coordinator.async_request_refresh()
 
 
-class TunerBandSwitchButton(CoordinatorEntity, ButtonEntity):
+class TunerBandSwitchButton(AudacButtonBase):
     """Toggle between FM and DAB (DMP40 only)."""
     _attr_has_entity_name = True
     _attr_icon = "mdi:swap-horizontal"
@@ -383,7 +402,7 @@ class TunerBandSwitchButton(CoordinatorEntity, ButtonEntity):
         await self.coordinator.async_request_refresh()
 
 
-class TunerPresetButton(CoordinatorEntity, ButtonEntity):
+class TunerPresetButton(AudacButtonBase):
     _attr_has_entity_name = True
     _attr_icon = "mdi:radio"
 
@@ -407,7 +426,7 @@ class TunerPresetButton(CoordinatorEntity, ButtonEntity):
 
 def _mmp40_button(icon, name_str, uid_suffix, method_name):
     """Factory for simple MMP40 buttons."""
-    class Btn(CoordinatorEntity, ButtonEntity):
+    class Btn(AudacButtonBase):
         _attr_has_entity_name = True
         _attr_icon = icon
 
@@ -438,7 +457,7 @@ MMP40CancelRecordingButton = _mmp40_button("mdi:close-circle", "Aufnahme abbrech
 
 def _mmp40_arg_button(icon, name_str, uid_suffix, method_name, arg):
     """Factory for MMP40 buttons that pass an argument."""
-    class Btn(CoordinatorEntity, ButtonEntity):
+    class Btn(AudacButtonBase):
         _attr_has_entity_name = True
         _attr_icon = icon
 
@@ -469,7 +488,7 @@ MMP40RepeatOffButton = _mmp40_arg_button("mdi:repeat-off", "Wiederholen: Aus", "
 # MTX Buttons (Save, Volume Up/Down)
 # ═══════════════════════════════════════════════════════════════════════
 
-class MTXSaveButton(CoordinatorEntity, ButtonEntity):
+class MTXSaveButton(AudacButtonBase):
     """Button to save MTX settings (survives power cycle)."""
 
     _attr_has_entity_name = True
@@ -492,7 +511,7 @@ class MTXSaveButton(CoordinatorEntity, ButtonEntity):
         await self.coordinator.client.save()
 
 
-class MTXVolumeUpButton(CoordinatorEntity, ButtonEntity):
+class MTXVolumeUpButton(AudacButtonBase):
     """Button to increase zone volume by 3dB."""
 
     _attr_has_entity_name = True
@@ -518,7 +537,7 @@ class MTXVolumeUpButton(CoordinatorEntity, ButtonEntity):
         await self.coordinator.async_request_refresh()
 
 
-class MTXVolumeDownButton(CoordinatorEntity, ButtonEntity):
+class MTXVolumeDownButton(AudacButtonBase):
     """Button to decrease zone volume by 3dB."""
 
     _attr_has_entity_name = True

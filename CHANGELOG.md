@@ -1,14 +1,17 @@
 # Changelog
 
-## 3.15.1
-- **Fix: IMP40 favourites not loading** — `_favourites_loaded` was set to `True` even when loading failed (e.g. after connection recovery). Favourites now retry every poll until successfully loaded.
+## 3.15.2
+- **Fix: all buttons always available** — buttons are fire-and-forget commands, they don't depend on coordinator state
+- New `AudacButtonBase` class with `available = True` — all 13 button classes inherit from it
+- Buttons no longer show as `unavailable` when the coordinator has a failed poll
 
 ## 3.15.1
 - **Fix: all IMP40 favourites now loaded** — pagination no longer stops early on partial batches
+- **Fix: IMP40 favourites retry** — `_favourites_loaded` retries every poll until successfully loaded
 - Removed `len(batch) < 10` termination condition — only empty response stops pagination
 - Added deduplication via `seen_pointers` set to detect when device loops back
 - Max pages increased from 10 to 20 (supports up to 200 stations)
-- `COMMAND_TIMEOUT` increased from 5s to 8s — GFAV responses need more time (5s inner read + overhead)
+- `COMMAND_TIMEOUT` increased from 5s to 8s — GFAV responses need more time
 
 ## 3.15.0
 - **Refined failure strategy** for both MTX and XMP44 coordinators:
