@@ -390,18 +390,29 @@ class XMP44Client(AudacClient):
         return stations
 
     async def get_all_favourites(self, slot: int) -> list[dict[str, Any]]:
-        """Load all favourites by paginating through the list (10 at a time)."""
+        """Load all favourites by paginating through the list (10 at a time).
+
+        Pages until an empty response is returned. Does NOT use batch size
+        as termination condition — the device may return fewer than 10 items
+        per page even when more exist.
+        """
         all_stations: list[dict[str, Any]] = []
         start = 0
-        for _ in range(10):  # Max 100 stations (10 pages of 10)
+        seen_pointers: set[str] = set()
+        for _ in range(20):  # Max 200 stations (20 pages of 10)
             batch = await self.get_favourites(slot, start)
             if not batch:
                 break
-            all_stations.extend(batch)
+            # Deduplicate: if we see the same pointers again, we've looped
+            new_items = [s for s in batch if s["pointer"] not in seen_pointers]
+            if not new_items:
+                break
+            for s in new_items:
+                seen_pointers.add(s["pointer"])
+            all_stations.extend(new_items)
             start += 10
             await asyncio.sleep(INTER_COMMAND_DELAY)
-            if len(batch) < 10:
-                break
+        _LOGGER.debug("Loaded %d favourites for slot %d", len(all_stations), slot)
         return all_stations
 
     async def select_station(self, slot: int, pointer: int) -> bool:
