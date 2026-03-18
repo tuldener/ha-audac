@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.14.3
+- **Fix: persistent unavailable state** — Single command timeout reduced from 25s to 5s
+- A hung TCP command now frees the lock in 5s instead of 25s, preventing cascading timeouts
+- Overall timeouts restored: GET_ALL_ZONES 45s, UPDATE 55s (were aggressively reduced to 25s/35s in v3.12.0)
+- Both MTX and XMP44 coordinators benefit from faster failure recovery
+
 ## 3.14.2
 - Compact zone/slot rows further to match HA standard container padding
 - Row padding: 10px 12px → 8px 12px (row height ~52px, down from ~58px)

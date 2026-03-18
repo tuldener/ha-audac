@@ -19,7 +19,7 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=30)
 
 # Hard timeout for a complete coordinator update cycle.
-UPDATE_TIMEOUT = 45.0
+UPDATE_TIMEOUT = 55.0
 
 # Number of consecutive failures before marking entities as unavailable.
 MAX_CONSECUTIVE_FAILURES = 3

@@ -19,8 +19,9 @@ from .const import DEFAULT_PORT, DEFAULT_SOURCE, INPUT_NAMES, BASS_TREBLE_MAP
 _LOGGER = logging.getLogger(__name__)
 
 # Hard timeout for the entire get_all_zones() call (seconds).
-# 8 zones × ~2s per zone + margin = 25s should be plenty.
-GET_ALL_ZONES_TIMEOUT = 25.0
+# 8 zones × ~2s per zone = ~16s normally. Set to 45s to allow
+# for occasional retries and slow responses without false timeouts.
+GET_ALL_ZONES_TIMEOUT = 45.0
 
 
 class MTXClient(AudacClient):

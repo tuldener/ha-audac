@@ -26,7 +26,10 @@ RECONNECT_MAX_DELAY = 30.0
 INTER_COMMAND_DELAY = 0.15
 
 # Hard timeout for a single send-and-receive cycle (seconds).
-COMMAND_TIMEOUT = 25.0
+# This covers: lock acquisition + connect + send + read + 1 retry.
+# A responsive device answers within 1-2s. If nothing comes back in 5s,
+# the connection is dead and we should fail fast instead of blocking other commands.
+COMMAND_TIMEOUT = 5.0
 
 
 class AudacClient:
