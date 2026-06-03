@@ -4,6 +4,12 @@
 - **Manifest: declare `quality_scale: bronze`** — verified compatibility with Home Assistant 2026.6.0
 - No functional changes; metadata-only release
 
+## 3.16.0
+- **Refactor: migrate from `hass.data[DOMAIN]` to `entry.runtime_data`** — modern HA pattern, typed access via `AudacConfigEntry`
+- Replaced integration-wide `loaded` flag with module-level `_CARD_REGISTERED`
+- Removed `async_setup` (no longer needed without `hass.data` init)
+- Simplified `async_unload_entry` (`runtime_data` auto-cleaned)
+
 ## 3.15.2
 - **Fix: all buttons always available** — buttons are fire-and-forget commands, they don't depend on coordinator state
 - New `AudacButtonBase` class with `available = True` — all 13 button classes inherit from it
