@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.16.1
+- **Manifest: declare `quality_scale: bronze`** — verified compatibility with Home Assistant 2026.6.0
+- No functional changes; metadata-only release
+
 ## 3.15.2
 - **Fix: all buttons always available** — buttons are fire-and-forget commands, they don't depend on coordinator state
 - New `AudacButtonBase` class with `available = True` — all 13 button classes inherit from it
