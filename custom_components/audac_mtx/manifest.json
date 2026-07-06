@@ -1,13 +1,19 @@
 {
   "domain": "audac_mtx",
   "name": "Audac",
-  "after_dependencies": ["frontend", "http", "lovelace"],
-  "codeowners": ["@FX6W9WZK"],
+  "after_dependencies": [
+    "frontend",
+    "http",
+    "lovelace"
+  ],
+  "codeowners": [
+    "@FX6W9WZK"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/FX6W9WZK/ha-audac",
   "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/FX6W9WZK/ha-audac/issues",
   "requirements": [],
-  "version": "3.16.0"
+  "version": "3.17.0"
 }

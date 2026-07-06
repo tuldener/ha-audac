@@ -6,8 +6,8 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_PORT
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
 from .const import (
@@ -47,7 +47,7 @@ class AudacMTXConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -68,11 +68,11 @@ class AudacMTXConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     port=user_input.get(CONF_PORT, DEFAULT_PORT),
                 )
 
+            await self.async_set_unique_id(f"audac_mtx_{user_input[CONF_HOST]}")
+            self._abort_if_unique_id_configured()
+
             try:
                 await client.connect()
-
-                await self.async_set_unique_id(f"audac_mtx_{user_input[CONF_HOST]}")
-                self._abort_if_unique_id_configured()
 
                 return self.async_create_entry(
                     title=user_input.get("name", "Audac MTX"),
@@ -91,16 +91,13 @@ class AudacMTXConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     def async_get_options_flow(config_entry):
-        return AudacMTXOptionsFlow(config_entry)
+        return AudacMTXOptionsFlow()
 
 
-class AudacMTXOptionsFlow(config_entries.OptionsFlow):
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self._config_entry = config_entry
-
+class AudacMTXOptionsFlow(config_entries.OptionsFlowWithReload):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -121,15 +118,15 @@ class AudacMTXOptionsFlow(config_entries.OptionsFlow):
     async def _show_options_form(
         self,
         errors: dict[str, str] | None = None,
-    ) -> FlowResult:
-        model = self._config_entry.data.get(CONF_MODEL, MODEL_MTX88)
-        current_options = self._config_entry.options
+    ) -> ConfigFlowResult:
+        model = self.config_entry.data.get(CONF_MODEL, MODEL_MTX88)
+        current_options = self.config_entry.options
 
         schema_dict = {}
 
         if is_xmp_model(model):
             # XMP44: Module selection, slot names and visibility
-            slots_count = self._config_entry.data.get("slots", MODEL_SLOTS.get(model, 4))
+            slots_count = self.config_entry.data.get("slots", MODEL_SLOTS.get(model, 4))
 
             module_options = [
                 selector.SelectOptionDict(value="0", label="Kein Modul"),

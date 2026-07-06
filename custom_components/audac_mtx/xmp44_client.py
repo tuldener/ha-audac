@@ -531,6 +531,8 @@ class XMP44Client(AudacClient):
             )
         except asyncio.TimeoutError:
             _LOGGER.warning("get_all_slots() timed out — forcing disconnect")
+            if self._writer is not None:
+                self._writer.close()
             self._writer = None
             self._reader = None
             self._consecutive_failures += 1

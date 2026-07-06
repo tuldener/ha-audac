@@ -72,6 +72,8 @@ class AudacClient:
             await self._flush_buffer()
         except Exception as err:
             self._reader = None
+            if self._writer is not None:
+                self._writer.close()
             self._writer = None
             raise ConnectionError(
                 f"Cannot connect to Audac device at {self._host}:{self._port}: {err}"
@@ -226,16 +228,12 @@ class AudacClient:
         try:
             return await asyncio.wait_for(_do(), timeout=COMMAND_TIMEOUT)
         except asyncio.TimeoutError:
-            if self._lock.locked():
-                _LOGGER.warning(
-                    "Audac command %s timed out with lock held — creating new Lock to recover",
-                    command,
-                )
-                self._lock = asyncio.Lock()
             _LOGGER.warning(
                 "Audac command %s timed out after %.0fs — forcing disconnect",
                 command, COMMAND_TIMEOUT,
             )
+            if self._writer is not None:
+                self._writer.close()
             self._writer = None
             self._reader = None
             self._consecutive_failures += 1

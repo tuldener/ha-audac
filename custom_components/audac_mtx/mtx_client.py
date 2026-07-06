@@ -82,6 +82,8 @@ class MTXClient(AudacClient):
                 "get_all_zones() exceeded %.0fs total timeout — forcing disconnect",
                 GET_ALL_ZONES_TIMEOUT,
             )
+            if self._writer is not None:
+                self._writer.close()
             self._writer = None
             self._reader = None
             self._consecutive_failures += 1

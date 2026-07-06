@@ -86,9 +86,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: AudacConfigEntry) -> boo
 
     await hass.config_entries.async_forward_entry_setups(entry, platforms)
 
-    entry.async_on_unload(
-        entry.add_update_listener(_async_update_options)
-    )
     entry.async_on_unload(coordinator.async_shutdown)
 
     return True
@@ -183,10 +180,6 @@ async def _register_lovelace_resource(hass: HomeAssistant, url_path: str, url_ve
 
     except Exception as err:
         _LOGGER.warning("Could not register Audac %s Lovelace resource: %s", label, err)
-
-
-async def _async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: AudacConfigEntry) -> bool:
