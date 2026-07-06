@@ -9,10 +9,9 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, MODEL_ZONES
+from .const import CONF_MODEL, MODEL_MTX88, MODEL_ZONES
 from .coordinator import AudacMTXCoordinator
 from .entity import AudacMTXBaseEntity
-from .helpers import _async_update_zone_visibility
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,7 +29,6 @@ async def async_setup_entry(
     for zone in range(1, zones_count + 1):
         entities.append(AudacMTXVolumeNumber(coordinator, zone, entry))
     async_add_entities(entities)
-    await _async_update_zone_visibility(hass, entry, zones_count, DOMAIN)
 
 
 class AudacMTXVolumeNumber(AudacMTXBaseEntity, NumberEntity):
@@ -46,7 +44,8 @@ class AudacMTXVolumeNumber(AudacMTXBaseEntity, NumberEntity):
         super().__init__(coordinator, zone, entry)
         zone_name = entry.options.get(f"zone_{zone}_name", f"Zone {zone}")
         self._attr_unique_id = f"{entry.entry_id}_zone_{zone}_volume"
-        self._attr_name = f"{zone_name} Volume"
+        self._attr_translation_key = "zone_volume"
+        self._attr_translation_placeholders = {"zone_name": zone_name}
 
     @property
     def native_value(self) -> float | None:

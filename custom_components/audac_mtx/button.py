@@ -14,7 +14,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, is_xmp_model
 from .xmp44_coordinator import XMP44Coordinator
-from .xmp44_client import MODULE_FMP40, MODULE_IMP40, MODULE_BMP40, MODULE_DMP40, MODULE_TMP40, MODULE_MMP40, MODULES_WITH_TUNER
+from .xmp44_client import MODULE_FMP40, MODULE_IMP40, MODULE_BMP40, MODULE_DMP40, MODULE_MMP40, MODULES_WITH_TUNER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -259,7 +259,8 @@ class FMP40TriggerStopButton(AudacButtonBase):
         self._entry = entry
 
         self._attr_unique_id = f"{entry.entry_id}_fmp40_slot{slot}_trigger{trigger}_stop"
-        self._attr_name = f"{trigger_name} Stop"
+        self._attr_translation_key = "fmp40_trigger_stop"
+        self._attr_translation_placeholders = {"trigger_name": trigger_name}
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }
@@ -334,7 +335,7 @@ class BMP40DisconnectButton(AudacButtonBase):
         self._entry = entry
 
         self._attr_unique_id = f"{entry.entry_id}_bmp40_slot{slot}_disconnect"
-        self._attr_name = "Disconnect"
+        self._attr_translation_key = "disconnect"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }
@@ -358,7 +359,7 @@ class TunerSearchUpButton(AudacButtonBase):
         super().__init__(coordinator)
         self._slot = slot
         self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_search_up"
-        self._attr_name = "Sendersuche +"
+        self._attr_translation_key = "search_up"
         self._attr_device_info = {"identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")}}
         self._attr_extra_state_attributes = {"slot_number": slot}
 
@@ -375,7 +376,7 @@ class TunerSearchDownButton(AudacButtonBase):
         super().__init__(coordinator)
         self._slot = slot
         self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_search_down"
-        self._attr_name = "Sendersuche -"
+        self._attr_translation_key = "search_down"
         self._attr_device_info = {"identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")}}
         self._attr_extra_state_attributes = {"slot_number": slot}
 
@@ -393,7 +394,7 @@ class TunerBandSwitchButton(AudacButtonBase):
         super().__init__(coordinator)
         self._slot = slot
         self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_band_switch"
-        self._attr_name = "DAB/FM Umschalten"
+        self._attr_translation_key = "band_switch"
         self._attr_device_info = {"identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")}}
         self._attr_extra_state_attributes = {"slot_number": slot}
 
@@ -411,7 +412,8 @@ class TunerPresetButton(AudacButtonBase):
         self._slot = slot
         self._preset = preset
         self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_preset_{preset}"
-        self._attr_name = f"Preset {preset}"
+        self._attr_translation_key = "preset"
+        self._attr_translation_placeholders = {"preset": str(preset)}
         self._attr_device_info = {"identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")}}
         self._attr_extra_state_attributes = {"slot_number": slot, "preset_number": preset}
 
@@ -424,17 +426,17 @@ class TunerPresetButton(AudacButtonBase):
 # MMP40 Media Player/Recorder Buttons
 # ═══════════════════════════════════════════════════════════════════════
 
-def _mmp40_button(icon, name_str, uid_suffix, method_name):
-    """Factory for simple MMP40 buttons."""
+def _mmp40_button(icon, uid_suffix, method_name):
+    """Factory for simple MMP40 buttons. uid_suffix doubles as translation key."""
     class Btn(AudacButtonBase):
         _attr_has_entity_name = True
         _attr_icon = icon
+        _attr_translation_key = uid_suffix
 
         def __init__(self, coordinator, entry, slot):
             super().__init__(coordinator)
             self._slot = slot
             self._attr_unique_id = f"{entry.entry_id}_mmp40_slot{slot}_{uid_suffix}"
-            self._attr_name = name_str
             self._attr_device_info = {"identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")}}
             self._attr_extra_state_attributes = {"slot_number": slot}
 
@@ -446,26 +448,26 @@ def _mmp40_button(icon, name_str, uid_suffix, method_name):
     return Btn
 
 
-MMP40GoToStartButton = _mmp40_button("mdi:skip-backward", "Zum Anfang", "go_to_start", "go_to_start")
-MMP40FastForwardButton = _mmp40_button("mdi:fast-forward", "Vorspulen", "fast_forward", "fast_forward")
-MMP40FastRewindButton = _mmp40_button("mdi:rewind", "Zurückspulen", "fast_rewind", "fast_rewind")
-MMP40StartRecordingButton = _mmp40_button("mdi:record-circle", "Aufnahme starten", "rec_start", "start_recording")
-MMP40StopRecordingButton = _mmp40_button("mdi:stop", "Aufnahme stoppen", "rec_stop", "stop_recording")
-MMP40PauseRecordingButton = _mmp40_button("mdi:pause", "Aufnahme pausieren", "rec_pause", "pause_recording")
-MMP40CancelRecordingButton = _mmp40_button("mdi:close-circle", "Aufnahme abbrechen", "rec_cancel", "cancel_recording")
+MMP40GoToStartButton = _mmp40_button("mdi:skip-backward", "go_to_start", "go_to_start")
+MMP40FastForwardButton = _mmp40_button("mdi:fast-forward", "fast_forward", "fast_forward")
+MMP40FastRewindButton = _mmp40_button("mdi:rewind", "fast_rewind", "fast_rewind")
+MMP40StartRecordingButton = _mmp40_button("mdi:record-circle", "rec_start", "start_recording")
+MMP40StopRecordingButton = _mmp40_button("mdi:stop", "rec_stop", "stop_recording")
+MMP40PauseRecordingButton = _mmp40_button("mdi:pause", "rec_pause", "pause_recording")
+MMP40CancelRecordingButton = _mmp40_button("mdi:close-circle", "rec_cancel", "cancel_recording")
 
 
-def _mmp40_arg_button(icon, name_str, uid_suffix, method_name, arg):
-    """Factory for MMP40 buttons that pass an argument."""
+def _mmp40_arg_button(icon, uid_suffix, method_name, arg):
+    """Factory for MMP40 buttons that pass an argument. uid_suffix doubles as translation key."""
     class Btn(AudacButtonBase):
         _attr_has_entity_name = True
         _attr_icon = icon
+        _attr_translation_key = uid_suffix
 
         def __init__(self, coordinator, entry, slot):
             super().__init__(coordinator)
             self._slot = slot
             self._attr_unique_id = f"{entry.entry_id}_mmp40_slot{slot}_{uid_suffix}"
-            self._attr_name = name_str
             self._attr_device_info = {"identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")}}
             self._attr_extra_state_attributes = {"slot_number": slot}
 
@@ -476,12 +478,12 @@ def _mmp40_arg_button(icon, name_str, uid_suffix, method_name, arg):
     return Btn
 
 
-MMP40RandomOnButton = _mmp40_arg_button("mdi:shuffle", "Zufällig An", "random_on", "set_random", True)
-MMP40RandomOffButton = _mmp40_arg_button("mdi:shuffle-disabled", "Zufällig Aus", "random_off", "set_random", False)
-MMP40RepeatOneButton = _mmp40_arg_button("mdi:repeat-once", "Wiederholen: Titel", "repeat_one", "set_repeat", 0)
-MMP40RepeatAllButton = _mmp40_arg_button("mdi:repeat", "Wiederholen: Alle", "repeat_all", "set_repeat", 4)
-MMP40RepeatFolderButton = _mmp40_arg_button("mdi:folder-sync", "Wiederholen: Ordner", "repeat_folder", "set_repeat", 1)
-MMP40RepeatOffButton = _mmp40_arg_button("mdi:repeat-off", "Wiederholen: Aus", "repeat_off", "set_repeat", 3)
+MMP40RandomOnButton = _mmp40_arg_button("mdi:shuffle", "random_on", "set_random", True)
+MMP40RandomOffButton = _mmp40_arg_button("mdi:shuffle-disabled", "random_off", "set_random", False)
+MMP40RepeatOneButton = _mmp40_arg_button("mdi:repeat-once", "repeat_one", "set_repeat", 0)
+MMP40RepeatAllButton = _mmp40_arg_button("mdi:repeat", "repeat_all", "set_repeat", 4)
+MMP40RepeatFolderButton = _mmp40_arg_button("mdi:folder-sync", "repeat_folder", "set_repeat", 1)
+MMP40RepeatOffButton = _mmp40_arg_button("mdi:repeat-off", "repeat_off", "set_repeat", 3)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -497,7 +499,7 @@ class MTXSaveButton(AudacButtonBase):
     def __init__(self, coordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_mtx_save"
-        self._attr_name = "Einstellungen speichern"
+        self._attr_translation_key = "save_settings"
         from .const import MODEL_NAMES, CONF_MODEL, MODEL_MTX88
         model = entry.data.get(CONF_MODEL, MODEL_MTX88)
         self._attr_device_info = {
@@ -522,7 +524,8 @@ class MTXVolumeUpButton(AudacButtonBase):
         self._zone = zone
         zone_name = entry.options.get(f"zone_{zone}_name", f"Zone {zone}")
         self._attr_unique_id = f"{entry.entry_id}_zone_{zone}_vol_up"
-        self._attr_name = f"{zone_name} Lauter"
+        self._attr_translation_key = "zone_volume_up"
+        self._attr_translation_placeholders = {"zone_name": zone_name}
         from .const import MODEL_NAMES, CONF_MODEL, MODEL_MTX88
         model = entry.data.get(CONF_MODEL, MODEL_MTX88)
         self._attr_device_info = {
@@ -548,7 +551,8 @@ class MTXVolumeDownButton(AudacButtonBase):
         self._zone = zone
         zone_name = entry.options.get(f"zone_{zone}_name", f"Zone {zone}")
         self._attr_unique_id = f"{entry.entry_id}_zone_{zone}_vol_down"
-        self._attr_name = f"{zone_name} Leiser"
+        self._attr_translation_key = "zone_volume_down"
+        self._attr_translation_placeholders = {"zone_name": zone_name}
         from .const import MODEL_NAMES, CONF_MODEL, MODEL_MTX88
         model = entry.data.get(CONF_MODEL, MODEL_MTX88)
         self._attr_device_info = {

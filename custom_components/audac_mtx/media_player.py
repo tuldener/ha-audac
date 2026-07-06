@@ -11,7 +11,7 @@ from homeassistant.components.media_player import (
     MediaPlayerState,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -19,13 +19,9 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, get_source_names, is_xmp_model
 from .coordinator import AudacMTXCoordinator
 from .xmp44_coordinator import XMP44Coordinator
-from .xmp44_client import (
-    MODULES_WITH_PLAYBACK, MODULES_WITH_SONG_INFO, MODULES_WITH_TUNER,
-    MODULE_NAMES, MODULE_DESCRIPTIONS, MODULE_EMPTY, MODULE_UNSUPPORTED,
-    MODULE_BMP40, MODULE_IMP40,
-)
+from .xmp44_client import MODULES_WITH_PLAYBACK, MODULE_EMPTY, MODULE_IMP40
 from .entity import AudacMTXBaseEntity
-from .helpers import _async_update_zone_visibility
+from .helpers import get_slave_zones, get_zone_master
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -56,7 +52,6 @@ async def _setup_mtx(
     for zone in range(1, zones_count + 1):
         entities.append(AudacMTXZone(coordinator, zone, entry))
     async_add_entities(entities)
-    await _async_update_zone_visibility(hass, entry, zones_count, DOMAIN)
 
     platform = entity_platform.async_get_current_platform()
     platform.async_register_entity_service(
@@ -97,39 +92,10 @@ class AudacMTXZone(AudacMTXBaseEntity, MediaPlayerEntity):
         self._attr_source_list = list(self._source_names.values())
 
     def _get_slave_zones(self) -> list[int]:
-        """Return zone numbers that are linked/slaved to this master zone.
-
-        Supports three formats for backward compatibility:
-        - zone_z_link: str   (current: dropdown, "0" = no link)
-        - zone_z_links: List[str]  (old: checkbox multi-select)
-        - zone_z_linked_to: int    (legacy)
-        """
-        from .const import MODEL_MTX88, MODEL_ZONES, CONF_MODEL
+        """Return zone numbers that are linked/slaved to this master zone."""
         model = self._entry.data.get(CONF_MODEL, MODEL_MTX88)
         zones_count = self._entry.data.get("zones", MODEL_ZONES.get(model, 8))
-        result = []
-        for z in range(1, zones_count + 1):
-            if z == self._zone:
-                continue
-            # Current format: single string from dropdown
-            link = self._entry.options.get(f"zone_{z}_link")
-            if link is not None:
-                try:
-                    if int(link) == self._zone:
-                        result.append(z)
-                except (ValueError, TypeError):
-                    pass
-                continue
-            # Old format: list of zone-number strings
-            links = self._entry.options.get(f"zone_{z}_links")
-            if links is not None:
-                if str(self._zone) in links:
-                    result.append(z)
-                continue
-            # Legacy format: integer
-            if self._entry.options.get(f"zone_{z}_linked_to", 0) == self._zone:
-                result.append(z)
-        return result
+        return get_slave_zones(self._entry.options, self._zone, zones_count)
 
     async def _mirror_to_slaves(self, coro_factory) -> None:
         """Send the same command to all slave zones linked to this master."""
@@ -138,22 +104,7 @@ class AudacMTXZone(AudacMTXBaseEntity, MediaPlayerEntity):
 
     def _get_linked_to(self) -> int:
         """Return the master zone number this zone is linked to, or 0."""
-        # Current format: single string from dropdown
-        link = self._entry.options.get(f"zone_{self._zone}_link")
-        if link is not None:
-            try:
-                return int(link)
-            except (ValueError, TypeError):
-                return 0
-        # Old format: list of zone-number strings
-        links = self._entry.options.get(f"zone_{self._zone}_links")
-        if links and isinstance(links, list) and len(links) > 0:
-            try:
-                return int(links[0])
-            except (ValueError, TypeError):
-                return 0
-        # Legacy format: integer
-        return self._entry.options.get(f"zone_{self._zone}_linked_to", 0)
+        return get_zone_master(self._entry.options, self._zone)
 
     @property
     def state(self) -> MediaPlayerState:
@@ -341,6 +292,21 @@ class AudacXMP44Slot(CoordinatorEntity, MediaPlayerEntity):
 
         # IMP40: name→pointer mapping for source selection
         self._source_pointer_map: dict[str, str] = {}
+        self._update_source_pointer_map(initial_data)
+
+    def _update_source_pointer_map(self, data: dict[str, Any]) -> None:
+        """Rebuild the IMP40 favourite name→pointer map from slot data."""
+        if self._module_type != MODULE_IMP40:
+            return
+        favs = data.get("favourites", [])
+        if favs:
+            self._source_pointer_map = {f["name"]: f["pointer"] for f in favs}
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._update_source_pointer_map(self._slot_data)
+        super()._handle_coordinator_update()
 
     @property
     def _slot_data(self) -> dict[str, Any]:
@@ -421,7 +387,6 @@ class AudacXMP44Slot(CoordinatorEntity, MediaPlayerEntity):
         data = self._slot_data
         favs = data.get("favourites", [])
         if favs:
-            self._source_pointer_map = {f["name"]: f["pointer"] for f in favs}
             return [f["name"] for f in favs]
         return None
 

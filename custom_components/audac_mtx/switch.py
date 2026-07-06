@@ -14,7 +14,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, is_xmp_model
 from .coordinator import AudacMTXCoordinator
 from .entity import AudacMTXBaseEntity
-from .helpers import _async_update_zone_visibility
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,7 +44,6 @@ async def _setup_mtx_switches(
     for zone in range(1, zones_count + 1):
         entities.append(AudacMTXMuteSwitch(coordinator, zone, entry))
     async_add_entities(entities)
-    await _async_update_zone_visibility(hass, entry, zones_count, DOMAIN)
 
 
 async def _setup_xmp44_switches(
@@ -54,7 +52,7 @@ async def _setup_xmp44_switches(
     coordinator,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    from .xmp44_client import MODULE_BMP40, MODULE_DMP40, MODULE_TMP40, MODULE_MMP40, MODULES_WITH_TUNER
+    from .xmp44_client import MODULE_BMP40, MODULE_MMP40, MODULES_WITH_TUNER
     slots_count = entry.data.get("slots", 4)
     entities = []
 
@@ -86,7 +84,8 @@ class AudacMTXMuteSwitch(AudacMTXBaseEntity, SwitchEntity):
         super().__init__(coordinator, zone, entry)
         zone_name = entry.options.get(f"zone_{zone}_name", f"Zone {zone}")
         self._attr_unique_id = f"{entry.entry_id}_zone_{zone}_mute"
-        self._attr_name = f"{zone_name} Mute"
+        self._attr_translation_key = "zone_mute"
+        self._attr_translation_placeholders = {"zone_name": zone_name}
 
     @property
     def is_on(self) -> bool | None:
@@ -120,7 +119,7 @@ class BMP40PairingSwitch(CoordinatorEntity, SwitchEntity):
         self._entry = entry
 
         self._attr_unique_id = f"{entry.entry_id}_bmp40_slot{slot}_pairing"
-        self._attr_name = "Pairing"
+        self._attr_translation_key = "pairing"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }
@@ -161,7 +160,7 @@ class TunerStereoSwitch(CoordinatorEntity, SwitchEntity):
         super().__init__(coordinator)
         self._slot = slot
         self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_stereo"
-        self._attr_name = "Stereo"
+        self._attr_translation_key = "stereo"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }
@@ -197,7 +196,7 @@ class MMP40RecorderModeSwitch(CoordinatorEntity, SwitchEntity):
         super().__init__(coordinator)
         self._slot = slot
         self._attr_unique_id = f"{entry.entry_id}_mmp40_slot{slot}_recorder"
-        self._attr_name = "Aufnahme-Modus"
+        self._attr_translation_key = "recorder_mode"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }

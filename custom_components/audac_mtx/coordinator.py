@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, MODEL_ZONES
+from .helpers import get_zone_links
 from .mtx_client import MTXClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -52,40 +53,8 @@ class AudacMTXCoordinator(DataUpdateCoordinator[dict[int, dict[str, Any]]]):
         self._consecutive_update_failures = 0
 
     def _get_zone_links(self) -> dict[int, int]:
-        """Return {slave_zone: master_zone} mapping from current options.
-
-        Supports three formats for backward compatibility:
-        - zone_z_link: str   (current: dropdown, "0" = no link)
-        - zone_z_links: List[str]  (old: checkbox multi-select)
-        - zone_z_linked_to: int    (legacy)
-        """
-        links = {}
-        for z in range(1, self._zones_count + 1):
-            # Current format: single string from dropdown
-            zone_link = self.entry.options.get(f"zone_{z}_link")
-            if zone_link is not None:
-                try:
-                    master = int(zone_link)
-                    if master and master != z:
-                        links[z] = master
-                except (ValueError, TypeError):
-                    pass
-                continue
-            # Old format: list of zone-number strings
-            zone_links = self.entry.options.get(f"zone_{z}_links")
-            if zone_links and isinstance(zone_links, list) and len(zone_links) > 0:
-                try:
-                    master = int(zone_links[0])
-                    if master != z:
-                        links[z] = master
-                except (ValueError, TypeError):
-                    pass
-                continue
-            # Legacy format: single integer
-            master = self.entry.options.get(f"zone_{z}_linked_to", 0)
-            if master and master != z:
-                links[z] = master
-        return links
+        """Return {slave_zone: master_zone} mapping from current options."""
+        return get_zone_links(self.entry.options, self._zones_count)
 
     def _is_suspicious_response(self, new_zones: dict[int, dict[str, Any]]) -> bool:
         """Detect suspicious all-zero responses that likely indicate a communication glitch.

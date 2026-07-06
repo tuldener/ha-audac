@@ -14,7 +14,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, get_source_names, is_xmp_model
 from .coordinator import AudacMTXCoordinator
 from .entity import AudacMTXBaseEntity
-from .helpers import _async_update_zone_visibility
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,7 +52,6 @@ async def _setup_mtx_sensors(
     for zone in range(1, zones_count + 1):
         entities.append(AudacMTXSourceSensor(coordinator, zone, entry))
     async_add_entities(entities)
-    await _async_update_zone_visibility(hass, entry, zones_count, DOMAIN)
 
 
 async def _setup_xmp44_sensors(
@@ -61,7 +59,7 @@ async def _setup_xmp44_sensors(
     coordinator,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    from .xmp44_client import MODULE_BMP40, MODULE_NMP40, MODULE_DMP40, MODULE_TMP40, MODULE_MMP40, MODULES_WITH_TUNER
+    from .xmp44_client import MODULE_BMP40, MODULE_NMP40, MODULE_DMP40, MODULES_WITH_TUNER
     slots_count = entry.data.get("slots", 4)
     entities = []
 
@@ -99,7 +97,8 @@ class AudacMTXSourceSensor(AudacMTXBaseEntity, SensorEntity):
         super().__init__(coordinator, zone, entry)
         zone_name = entry.options.get(f"zone_{zone}_name", f"Zone {zone}")
         self._attr_unique_id = f"{entry.entry_id}_zone_{zone}_active_source"
-        self._attr_name = f"{zone_name} Active Source"
+        self._attr_translation_key = "zone_active_source"
+        self._attr_translation_placeholders = {"zone_name": zone_name}
         self._source_names = get_source_names(entry.options, visible_only=False)
 
     @property
@@ -141,7 +140,7 @@ class BMP40ConnectedDeviceSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._slot = slot
         self._attr_unique_id = f"{entry.entry_id}_bmp40_slot{slot}_connected_device"
-        self._attr_name = "Verbundenes Gerät"
+        self._attr_translation_key = "connected_device"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }
@@ -193,7 +192,7 @@ class BMP40PairingStateSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._slot = slot
         self._attr_unique_id = f"{entry.entry_id}_bmp40_slot{slot}_pairing_state"
-        self._attr_name = "Pairing Status"
+        self._attr_translation_key = "pairing_state"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }
@@ -225,7 +224,7 @@ class NMP40PlayerNameSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._slot = slot
         self._attr_unique_id = f"{entry.entry_id}_nmp40_slot{slot}_player_name"
-        self._attr_name = "Player Name"
+        self._attr_translation_key = "player_name"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }
@@ -250,7 +249,7 @@ class NMP40IPAddressSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._slot = slot
         self._attr_unique_id = f"{entry.entry_id}_nmp40_slot{slot}_ip"
-        self._attr_name = "IP-Adresse"
+        self._attr_translation_key = "ip_address"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }
@@ -281,7 +280,7 @@ class TunerFrequencySensor(CoordinatorEntity, SensorEntity):
         self._extra_slot = slot
         self._attr_extra_state_attributes = {"slot_number": slot}
         self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_frequency"
-        self._attr_name = "Frequenz"
+        self._attr_translation_key = "frequency"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }
@@ -309,7 +308,7 @@ class TunerProgramNameSensor(CoordinatorEntity, SensorEntity):
         self._extra_slot = slot
         self._attr_extra_state_attributes = {"slot_number": slot}
         self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_program"
-        self._attr_name = "Sender"
+        self._attr_translation_key = "program_name"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }
@@ -336,7 +335,7 @@ class TunerSignalStrengthSensor(CoordinatorEntity, SensorEntity):
         self._extra_slot = slot
         self._attr_extra_state_attributes = {"slot_number": slot}
         self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_signal"
-        self._attr_name = "Signalstärke"
+        self._attr_translation_key = "signal_strength"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }
@@ -361,7 +360,7 @@ class TunerBandSensor(CoordinatorEntity, SensorEntity):
         self._extra_slot = slot
         self._attr_extra_state_attributes = {"slot_number": slot}
         self._attr_unique_id = f"{entry.entry_id}_tuner_slot{slot}_band"
-        self._attr_name = "Band"
+        self._attr_translation_key = "band"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
         }

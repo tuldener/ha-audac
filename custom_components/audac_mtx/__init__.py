@@ -12,6 +12,7 @@ import homeassistant.helpers.config_validation as cv
 
 from .const import DOMAIN, CARD_URL_PATH, CARD_FILENAME, XMP44_CARD_FILENAME, XMP44_CARD_URL_PATH, CONF_MODEL, MODEL_MTX48, MODEL_MTX88, MODEL_XMP44, MODEL_ZONES, is_xmp_model
 from .coordinator import AudacMTXCoordinator
+from .helpers import _async_update_zone_visibility
 from .xmp44_coordinator import XMP44Coordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -85,6 +86,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: AudacConfigEntry) -> boo
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, platforms)
+
+    if not is_xmp_model(model):
+        # Hide/unhide zone entities once, after all platforms have registered
+        # their entities (previously each platform ran this scan itself).
+        zones_count = entry.data.get("zones", MODEL_ZONES.get(model, 8))
+        await _async_update_zone_visibility(hass, entry, zones_count)
 
     entry.async_on_unload(coordinator.async_shutdown)
 

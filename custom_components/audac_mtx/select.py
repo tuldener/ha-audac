@@ -10,10 +10,9 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, INPUT_NAMES, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, get_source_names
+from .const import INPUT_NAMES, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, get_source_names
 from .coordinator import AudacMTXCoordinator
 from .entity import AudacMTXBaseEntity
-from .helpers import _async_update_zone_visibility
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,7 +30,6 @@ async def async_setup_entry(
     for zone in range(1, zones_count + 1):
         entities.append(AudacMTXSourceSelect(coordinator, zone, entry))
     async_add_entities(entities)
-    await _async_update_zone_visibility(hass, entry, zones_count, DOMAIN)
 
 
 class AudacMTXSourceSelect(AudacMTXBaseEntity, SelectEntity):
@@ -42,7 +40,8 @@ class AudacMTXSourceSelect(AudacMTXBaseEntity, SelectEntity):
         super().__init__(coordinator, zone, entry)
         zone_name = entry.options.get(f"zone_{zone}_name", f"Zone {zone}")
         self._attr_unique_id = f"{entry.entry_id}_zone_{zone}_source"
-        self._attr_name = f"{zone_name} Source"
+        self._attr_translation_key = "zone_source"
+        self._attr_translation_placeholders = {"zone_name": zone_name}
         self._source_names = get_source_names(entry.options)
         self._attr_options = list(self._source_names.values())
 
