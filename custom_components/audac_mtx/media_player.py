@@ -219,10 +219,10 @@ async def _setup_xmp44(
     coordinator: XMP44Coordinator,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    # Register the XMP44 hub device (so modules can reference it via via_device)
+    # Register the XMP44 hub device (so modules can link to it via via_device_id)
     from homeassistant.helpers import device_registry as dr
     dev_reg = dr.async_get(hass)
-    dev_reg.async_get_or_create(
+    hub = dev_reg.async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, entry.entry_id)},
         name=entry.data.get("name", "Audac XMP44"),
@@ -234,7 +234,9 @@ async def _setup_xmp44(
     if coordinator.data:
         entities = []
         for slot, slot_data in coordinator.data.items():
-            entities.append(AudacXMP44Slot(coordinator, slot, entry, slot_data))
+            entities.append(
+                AudacXMP44Slot(coordinator, slot, entry, slot_data, hub.id)
+            )
         async_add_entities(entities)
     else:
         _LOGGER.warning("XMP44: no slot data available after first refresh")
@@ -251,6 +253,7 @@ class AudacXMP44Slot(CoordinatorEntity, MediaPlayerEntity):
         slot: int,
         entry: ConfigEntry,
         initial_data: dict[str, Any],
+        hub_device_id: str,
     ) -> None:
         super().__init__(coordinator)
         self._slot = slot
@@ -264,14 +267,14 @@ class AudacXMP44Slot(CoordinatorEntity, MediaPlayerEntity):
         # Entity name = None means HA uses the device name directly (1:1 mapping)
         self._attr_name = None
 
-        # Each module gets its own device, linked to the XMP44 hub via via_device
+        # Each module gets its own device, linked to the XMP44 hub
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{entry.entry_id}_slot_{slot}")},
             "name": custom_name or f"{self._module_name} (Slot {slot})",
             "manufacturer": "Audac",
             "model": self._module_name,
             "sw_version": initial_data.get("module_version", ""),
-            "via_device": (DOMAIN, entry.entry_id),
+            "via_device_id": hub_device_id,
         }
         if module_desc:
             self._attr_device_info["model"] = f"{self._module_name} – {module_desc}"
