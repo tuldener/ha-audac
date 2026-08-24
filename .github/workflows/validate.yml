@@ -34,4 +34,4 @@ jobs:
       - name: Install test dependencies
         run: pip install -r requirements_test.txt
       - name: Run tests
-        run: pytest tests/ --cov=custom_components.audac_mtx.config_flow --cov-fail-under=100
+        run: pytest tests/ --cov=custom_components.audac_mtx --cov-fail-under=95

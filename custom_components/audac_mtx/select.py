@@ -10,11 +10,15 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .helpers import execute_device_command
 from .const import INPUT_NAMES, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, get_source_names
 from .coordinator import AudacMTXCoordinator
 from .entity import AudacMTXBaseEntity
 
 _LOGGER = logging.getLogger(__name__)
+
+# Commands are serialized by the client lock; reads come from the coordinator.
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
@@ -73,11 +77,11 @@ class AudacMTXSourceSelect(AudacMTXBaseEntity, SelectEntity):
     async def async_select_option(self, option: str) -> None:
         for input_id, name in self._source_names.items():
             if name == option:
-                await self.coordinator.client.set_routing(self._zone, input_id)
+                await execute_device_command(self.coordinator.client.set_routing(self._zone, input_id), "set_routing")
                 await self.coordinator.async_request_refresh()
                 return
         for input_id, name in INPUT_NAMES.items():
             if name == option:
-                await self.coordinator.client.set_routing(self._zone, input_id)
+                await execute_device_command(self.coordinator.client.set_routing(self._zone, input_id), "set_routing")
                 await self.coordinator.async_request_refresh()
                 return

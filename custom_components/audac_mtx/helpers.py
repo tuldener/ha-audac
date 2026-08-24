@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_registry import RegistryEntryHider
@@ -129,3 +130,15 @@ async def _async_update_zone_visibility(
                 )
             elif should_be_visible and currently_hidden:
                 ent_reg.async_update_entity(ent_entry.entity_id, hidden_by=None)
+
+
+async def execute_device_command(coro, action: str):
+    """Await a client command and translate transport errors for the UI.
+
+    Raises HomeAssistantError so failed service actions surface as proper
+    errors in Home Assistant instead of unhandled ConnectionErrors.
+    """
+    try:
+        return await coro
+    except (ConnectionError, TimeoutError, OSError) as err:
+        raise HomeAssistantError(f"Audac command failed ({action}): {err}") from err

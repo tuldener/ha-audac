@@ -11,11 +11,15 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .helpers import execute_device_command
 from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, is_xmp_model
 from .coordinator import AudacMTXCoordinator
 from .entity import AudacMTXBaseEntity
 
 _LOGGER = logging.getLogger(__name__)
+
+# Commands are serialized by the client lock; reads come from the coordinator.
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
@@ -95,11 +99,11 @@ class AudacMTXMuteSwitch(AudacMTXBaseEntity, SwitchEntity):
         return data.get("mute", False)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await self.coordinator.client.set_mute(self._zone, True)
+        await execute_device_command(self.coordinator.client.set_mute(self._zone, True), "set_mute")
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self.coordinator.client.set_mute(self._zone, False)
+        await execute_device_command(self.coordinator.client.set_mute(self._zone, False), "set_mute")
         await self.coordinator.async_request_refresh()
 
 
@@ -138,11 +142,11 @@ class BMP40PairingSwitch(CoordinatorEntity, SwitchEntity):
         return pairing == 3  # enabled
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await self.coordinator.client.set_pairing(self._slot, True)
+        await execute_device_command(self.coordinator.client.set_pairing(self._slot, True), "set_pairing")
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self.coordinator.client.set_pairing(self._slot, False)
+        await execute_device_command(self.coordinator.client.set_pairing(self._slot, False), "set_pairing")
         await self.coordinator.async_request_refresh()
 
 
@@ -174,11 +178,11 @@ class TunerStereoSwitch(CoordinatorEntity, SwitchEntity):
         return data[self._slot].get("stereo")
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await self.coordinator.client.set_stereo(self._slot, True)
+        await execute_device_command(self.coordinator.client.set_stereo(self._slot, True), "set_stereo")
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self.coordinator.client.set_stereo(self._slot, False)
+        await execute_device_command(self.coordinator.client.set_stereo(self._slot, False), "set_stereo")
         await self.coordinator.async_request_refresh()
 
 
@@ -213,9 +217,9 @@ class MMP40RecorderModeSwitch(CoordinatorEntity, SwitchEntity):
         return mode == "recorder"
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await self.coordinator.client.set_recorder_mode(self._slot, True)
+        await execute_device_command(self.coordinator.client.set_recorder_mode(self._slot, True), "set_recorder_mode")
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self.coordinator.client.set_recorder_mode(self._slot, False)
+        await execute_device_command(self.coordinator.client.set_recorder_mode(self._slot, False), "set_recorder_mode")
         await self.coordinator.async_request_refresh()

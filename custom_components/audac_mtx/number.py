@@ -9,11 +9,15 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .helpers import execute_device_command
 from .const import CONF_MODEL, MODEL_MTX88, MODEL_ZONES
 from .coordinator import AudacMTXCoordinator
 from .entity import AudacMTXBaseEntity
 
 _LOGGER = logging.getLogger(__name__)
+
+# Commands are serialized by the client lock; reads come from the coordinator.
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
@@ -60,5 +64,5 @@ class AudacMTXVolumeNumber(AudacMTXBaseEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         volume_raw = int((1.0 - (value / 100.0)) * 70)
         volume_raw = max(0, min(70, volume_raw))
-        await self.coordinator.client.set_volume(self._zone, volume_raw)
+        await execute_device_command(self.coordinator.client.set_volume(self._zone, volume_raw), "set_volume")
         await self.coordinator.async_request_refresh()

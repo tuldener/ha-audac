@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.21.0
+- **Quality scale: silver**
+  - Test suite grown from 10 to 267 tests: TCP clients (wire-format checks against the AUDAC protocol reference), coordinators, every entity platform, setup/unload, helpers — 99% total coverage, enforced in CI (fail-under 95%)
+  - Failed service actions now raise proper Home Assistant errors instead of unhandled connection errors (all 37 command paths)
+  - `PARALLEL_UPDATES` declared on all platforms
+  - README documents all installation parameters and configuration options
+- **Fix**: `routing_down` on a coupled master zone now mirrors to its slave zones like every other zone command
+- **Fix**: a failed Lovelace card registration is retried on the next entry setup instead of being skipped forever
+
 ## 3.20.0
 - **Quality scale: bronze — now with substance**
   - Full config-flow test suite (pytest, 10 tests, 100% coverage of `config_flow.py`) running in CI on every push

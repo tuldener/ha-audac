@@ -69,8 +69,10 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
 async def async_setup_entry(hass: HomeAssistant, entry: AudacConfigEntry) -> bool:
     global _CARD_REGISTERED
     if not _CARD_REGISTERED:
-        _CARD_REGISTERED = True
         await _register_card(hass)
+        # Only mark as done after success so a failed registration is
+        # retried when the next entry is set up.
+        _CARD_REGISTERED = True
 
     model = entry.data.get(CONF_MODEL, "mtx88")
 

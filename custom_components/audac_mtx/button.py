@@ -12,11 +12,15 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .helpers import execute_device_command
 from .const import DOMAIN, CONF_MODEL, MODEL_MTX88, MODEL_ZONES, is_xmp_model
 from .xmp44_coordinator import XMP44Coordinator
 from .xmp44_client import MODULE_FMP40, MODULE_IMP40, MODULE_BMP40, MODULE_DMP40, MODULE_MMP40, MODULES_WITH_TUNER
 
 _LOGGER = logging.getLogger(__name__)
+
+# Commands are serialized by the client lock; reads come from the coordinator.
+PARALLEL_UPDATES = 0
 
 
 class AudacButtonBase(CoordinatorEntity, ButtonEntity):
@@ -236,7 +240,7 @@ class FMP40TriggerStartButton(AudacButtonBase):
 
     async def async_press(self) -> None:
         """Start the trigger."""
-        await self.coordinator.client.trigger_start(self._slot, self._trigger)
+        await execute_device_command(self.coordinator.client.trigger_start(self._slot, self._trigger), "trigger_start")
 
 
 class FMP40TriggerStopButton(AudacButtonBase):
@@ -268,7 +272,7 @@ class FMP40TriggerStopButton(AudacButtonBase):
 
     async def async_press(self) -> None:
         """Stop the trigger."""
-        await self.coordinator.client.trigger_stop(self._slot, self._trigger)
+        await execute_device_command(self.coordinator.client.trigger_stop(self._slot, self._trigger), "trigger_stop")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -310,7 +314,7 @@ class IMP40StationButton(AudacButtonBase):
 
     async def async_press(self) -> None:
         """Select this station."""
-        await self.coordinator.client.select_station(self._slot, self._pointer)
+        await execute_device_command(self.coordinator.client.select_station(self._slot, self._pointer), "select_station")
         await self.coordinator.async_request_refresh()
 
 
@@ -343,7 +347,7 @@ class BMP40DisconnectButton(AudacButtonBase):
 
     async def async_press(self) -> None:
         """Disconnect the currently connected device."""
-        await self.coordinator.client.disconnect_device(self._slot)
+        await execute_device_command(self.coordinator.client.disconnect_device(self._slot), "disconnect_device")
         await self.coordinator.async_request_refresh()
 
 
@@ -364,7 +368,7 @@ class TunerSearchUpButton(AudacButtonBase):
         self._attr_extra_state_attributes = {"slot_number": slot}
 
     async def async_press(self) -> None:
-        await self.coordinator.client.search_up(self._slot)
+        await execute_device_command(self.coordinator.client.search_up(self._slot), "search_up")
         await self.coordinator.async_request_refresh()
 
 
@@ -381,7 +385,7 @@ class TunerSearchDownButton(AudacButtonBase):
         self._attr_extra_state_attributes = {"slot_number": slot}
 
     async def async_press(self) -> None:
-        await self.coordinator.client.search_down(self._slot)
+        await execute_device_command(self.coordinator.client.search_down(self._slot), "search_down")
         await self.coordinator.async_request_refresh()
 
 
@@ -399,7 +403,7 @@ class TunerBandSwitchButton(AudacButtonBase):
         self._attr_extra_state_attributes = {"slot_number": slot}
 
     async def async_press(self) -> None:
-        await self.coordinator.client.switch_band(self._slot)
+        await execute_device_command(self.coordinator.client.switch_band(self._slot), "switch_band")
         await self.coordinator.async_request_refresh()
 
 
@@ -418,7 +422,7 @@ class TunerPresetButton(AudacButtonBase):
         self._attr_extra_state_attributes = {"slot_number": slot, "preset_number": preset}
 
     async def async_press(self) -> None:
-        await self.coordinator.client.select_preset(self._slot, self._preset)
+        await execute_device_command(self.coordinator.client.select_preset(self._slot, self._preset), "select_preset")
         await self.coordinator.async_request_refresh()
 
 
@@ -510,7 +514,7 @@ class MTXSaveButton(AudacButtonBase):
         }
 
     async def async_press(self) -> None:
-        await self.coordinator.client.save()
+        await execute_device_command(self.coordinator.client.save(), "save")
 
 
 class MTXVolumeUpButton(AudacButtonBase):
@@ -536,7 +540,7 @@ class MTXVolumeUpButton(AudacButtonBase):
         }
 
     async def async_press(self) -> None:
-        await self.coordinator.client.set_volume_up(self._zone)
+        await execute_device_command(self.coordinator.client.set_volume_up(self._zone), "set_volume_up")
         await self.coordinator.async_request_refresh()
 
 
@@ -563,5 +567,5 @@ class MTXVolumeDownButton(AudacButtonBase):
         }
 
     async def async_press(self) -> None:
-        await self.coordinator.client.set_volume_down(self._zone)
+        await execute_device_command(self.coordinator.client.set_volume_down(self._zone), "set_volume_down")
         await self.coordinator.async_request_refresh()

@@ -21,9 +21,12 @@ from .coordinator import AudacMTXCoordinator
 from .xmp44_coordinator import XMP44Coordinator
 from .xmp44_client import MODULES_WITH_PLAYBACK, MODULE_EMPTY, MODULE_IMP40
 from .entity import AudacMTXBaseEntity
-from .helpers import get_slave_zones, get_zone_master
+from .helpers import execute_device_command, get_slave_zones, get_zone_master
 
 _LOGGER = logging.getLogger(__name__)
+
+# Commands are serialized by the client lock; reads come from the coordinator.
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
@@ -100,7 +103,9 @@ class AudacMTXZone(AudacMTXBaseEntity, MediaPlayerEntity):
     async def _mirror_to_slaves(self, coro_factory) -> None:
         """Send the same command to all slave zones linked to this master."""
         for slave_zone in self._get_slave_zones():
-            await coro_factory(slave_zone)
+            await execute_device_command(
+                coro_factory(slave_zone), "mirror_to_slave"
+            )
 
     def _get_linked_to(self) -> int:
         """Return the master zone number this zone is linked to, or 0."""
@@ -160,52 +165,53 @@ class AudacMTXZone(AudacMTXBaseEntity, MediaPlayerEntity):
 
     async def async_set_volume_level(self, volume: float) -> None:
         volume_raw = int((1.0 - volume) * 70)
-        await self.coordinator.client.set_volume(self._zone, volume_raw)
+        await execute_device_command(self.coordinator.client.set_volume(self._zone, volume_raw), "set_volume")
         await self._mirror_to_slaves(lambda z: self.coordinator.client.set_volume(z, volume_raw))
         await self.coordinator.async_request_refresh()
 
     async def async_volume_up(self) -> None:
-        await self.coordinator.client.set_volume_up(self._zone)
+        await execute_device_command(self.coordinator.client.set_volume_up(self._zone), "set_volume_up")
         await self._mirror_to_slaves(lambda z: self.coordinator.client.set_volume_up(z))
         await self.coordinator.async_request_refresh()
 
     async def async_volume_down(self) -> None:
-        await self.coordinator.client.set_volume_down(self._zone)
+        await execute_device_command(self.coordinator.client.set_volume_down(self._zone), "set_volume_down")
         await self._mirror_to_slaves(lambda z: self.coordinator.client.set_volume_down(z))
         await self.coordinator.async_request_refresh()
 
     async def async_mute_volume(self, mute: bool) -> None:
-        await self.coordinator.client.set_mute(self._zone, mute)
+        await execute_device_command(self.coordinator.client.set_mute(self._zone, mute), "set_mute")
         await self._mirror_to_slaves(lambda z: self.coordinator.client.set_mute(z, mute))
         await self.coordinator.async_request_refresh()
 
     async def async_select_source(self, source: str) -> None:
         for input_id, name in self._source_names.items():
             if name == source:
-                await self.coordinator.client.set_routing(self._zone, input_id)
+                await execute_device_command(self.coordinator.client.set_routing(self._zone, input_id), "set_routing")
                 await self._mirror_to_slaves(lambda z: self.coordinator.client.set_routing(z, input_id))
                 await self.coordinator.async_request_refresh()
                 return
 
     async def async_set_bass(self, bass: int) -> None:
-        await self.coordinator.client.set_bass(self._zone, bass)
+        await execute_device_command(self.coordinator.client.set_bass(self._zone, bass), "set_bass")
         await self._mirror_to_slaves(lambda z: self.coordinator.client.set_bass(z, bass))
         await self.coordinator.async_request_refresh()
 
     async def async_set_treble(self, treble: int) -> None:
-        await self.coordinator.client.set_treble(self._zone, treble)
+        await execute_device_command(self.coordinator.client.set_treble(self._zone, treble), "set_treble")
         await self._mirror_to_slaves(lambda z: self.coordinator.client.set_treble(z, treble))
         await self.coordinator.async_request_refresh()
 
     async def async_routing_up(self) -> None:
         """Cycle to next available input source (skips disabled inputs on device)."""
-        await self.coordinator.client.set_routing_up(self._zone)
+        await execute_device_command(self.coordinator.client.set_routing_up(self._zone), "set_routing_up")
         await self._mirror_to_slaves(lambda z: self.coordinator.client.set_routing_up(z))
         await self.coordinator.async_request_refresh()
 
     async def async_routing_down(self) -> None:
         """Cycle to previous available input source (skips disabled inputs on device)."""
-        await self.coordinator.client.set_routing_down(self._zone)
+        await execute_device_command(self.coordinator.client.set_routing_down(self._zone), "set_routing_down")
+        await self._mirror_to_slaves(lambda z: self.coordinator.client.set_routing_down(z))
         await self.coordinator.async_request_refresh()
 
 
@@ -397,7 +403,7 @@ class AudacXMP44Slot(CoordinatorEntity, MediaPlayerEntity):
         """Select a favourite station by name (IMP40)."""
         pointer = self._source_pointer_map.get(source)
         if pointer is not None:
-            await self.coordinator.client.select_station(self._slot, int(pointer))
+            await execute_device_command(self.coordinator.client.select_station(self._slot, int(pointer)), "select_station")
             await self.coordinator.async_request_refresh()
         else:
             _LOGGER.warning("IMP40 slot %d: unknown source '%s'", self._slot, source)
@@ -439,21 +445,21 @@ class AudacXMP44Slot(CoordinatorEntity, MediaPlayerEntity):
     # ── Playback controls ───────────────────────────────────────────
 
     async def async_media_play(self) -> None:
-        await self.coordinator.client.play(self._slot)
+        await execute_device_command(self.coordinator.client.play(self._slot), "play")
         await self.coordinator.async_request_refresh()
 
     async def async_media_stop(self) -> None:
-        await self.coordinator.client.stop(self._slot)
+        await execute_device_command(self.coordinator.client.stop(self._slot), "stop")
         await self.coordinator.async_request_refresh()
 
     async def async_media_pause(self) -> None:
-        await self.coordinator.client.pause(self._slot)
+        await execute_device_command(self.coordinator.client.pause(self._slot), "pause")
         await self.coordinator.async_request_refresh()
 
     async def async_media_next_track(self) -> None:
-        await self.coordinator.client.next_track(self._slot)
+        await execute_device_command(self.coordinator.client.next_track(self._slot), "next_track")
         await self.coordinator.async_request_refresh()
 
     async def async_media_previous_track(self) -> None:
-        await self.coordinator.client.previous_track(self._slot)
+        await execute_device_command(self.coordinator.client.previous_track(self._slot), "previous_track")
         await self.coordinator.async_request_refresh()

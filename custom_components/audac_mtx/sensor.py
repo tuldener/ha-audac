@@ -17,6 +17,9 @@ from .entity import AudacMTXBaseEntity
 
 _LOGGER = logging.getLogger(__name__)
 
+# Commands are serialized by the client lock; reads come from the coordinator.
+PARALLEL_UPDATES = 0
+
 PAIRING_STATE_MAP = {
     0: "Erfolgreich",
     1: "Timeout",

@@ -2,7 +2,7 @@
 
 [![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-3.20.0-green.svg?style=flat-square)](https://github.com/FX6W9WZK/ha-audac/releases/latest)
+[![Version](https://img.shields.io/badge/Version-3.21.0-green.svg?style=flat-square)](https://github.com/FX6W9WZK/ha-audac/releases/latest)
 [![Built with Claude AI](https://img.shields.io/badge/Built%20with-Claude%20AI-c4956b.svg?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2Ij48cGF0aCBkPSJNMTcyLjEgNjUuOEwxMDQuMiAxOTAuMiA4My44IDE4My4xbDY3LjktMTI0LjQgMjAuNCAxMi4xek0xNTYuNSAxNzIuMWwtNTEuOC0yMi42IDguNS0xOS41IDUxLjggMjIuNi04LjUgMTkuNXoiIGZpbGw9IiNjNDk1NmIiLz48L3N2Zz4=)](https://www.anthropic.com/claude)
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=FX6W9WZK&repository=ha-audac&category=integration)
@@ -77,7 +77,24 @@ Communicates directly via TCP with the devices and ships with Bubble Card-inspir
 
 1. **Settings** → **Devices & Services** → **Add Integration**
 2. Search for **Audac**
-3. Enter IP address, port (default: 5001), and model (MTX48 / MTX88 / XMP44)
+3. Enter the connection details
+
+### Installation parameters
+
+| Parameter | Required | Default | Description |
+|---|---|---|---|
+| Host / IP address | yes | – | IP address or hostname of the Audac device |
+| Port | no | `5001` | TCP port of the device control interface |
+| Model | yes | `MTX88` | `MTX48` (4 zones), `MTX88` (8 zones), or `XMP44` (4 module slots) |
+| Device name | no | `Audac MTX` | Name used for the device and its entities |
+
+### Options (Settings → Devices & Services → Audac → Configure)
+
+**MTX models:** per-zone display name, per-zone visibility, zone coupling (link a zone to a master zone so volume/mute/source commands are mirrored), plus display name and visibility per input source.
+
+**XMP44:** per-slot module type (DMP40, TMP40, MMP40, IMP40, FMP40, BMP40, NMP40 or none), slot display name and visibility; for FMP40 voice-file modules additionally the number of triggers and a display name per trigger.
+
+All options take effect immediately — the integration reloads itself after saving.
 
 ---
 
