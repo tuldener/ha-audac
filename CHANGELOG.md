@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.19.2
+- **Fix: backoff-timeout guard from 3.19.1 was ineffective** — the `_in_backoff_sleep` flag was reset in a `finally` block, which runs while `wait_for` cancels the sleep, i.e. before the timeout handler reads the flag. The guard now uses read-and-reset in the handler, so timeouts during the backoff sleep really no longer ratchet the failure counter. (The deadlock itself was already fixed in 3.19.1 by the timing constants.)
+- Restore trailing newline in `manifest.json`
+
 ## 3.19.1
 - **Fix: recovery deadlock — volume control stops working until HA restart**
   - Root cause: `RECONNECT_MAX_DELAY` (30s) exceeded `COMMAND_TIMEOUT` (8s). After ~4 consecutive failures, every command timed out during the backoff sleep before ever reaching `connect()`. Each timeout ratcheted the failure counter, so the delay stayed pinned at 30s indefinitely — only an HA restart cleared the client state.
