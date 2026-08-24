@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.20.0
+- **Quality scale: bronze — now with substance**
+  - Full config-flow test suite (pytest, 10 tests, 100% coverage of `config_flow.py`) running in CI on every push
+  - `data_description` texts for all setup form fields (en/de)
+  - Removal instructions in the README
+  - `quality_scale: bronze` re-declared in the manifest, this time backed by the checklist
+
 ## 3.19.2
 - **Fix: backoff-timeout guard from 3.19.1 was ineffective** — the `_in_backoff_sleep` flag was reset in a `finally` block, which runs while `wait_for` cancels the sleep, i.e. before the timeout handler reads the flag. The guard now uses read-and-reset in the handler, so timeouts during the backoff sleep really no longer ratchet the failure counter. (The deadlock itself was already fixed in 3.19.1 by the timing constants.)
 - Restore trailing newline in `manifest.json`

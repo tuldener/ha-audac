@@ -9,6 +9,12 @@
           "port": "Port",
           "model": "Model",
           "name": "Device Name"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the Audac device on your network.",
+          "port": "TCP port of the device control interface (default 5001).",
+          "model": "The Audac model determines the number of zones or module slots.",
+          "name": "Name used for the device and its entities in Home Assistant."
         }
       }
     },
@@ -89,51 +95,125 @@
   },
   "entity": {
     "button": {
-      "fmp40_trigger_stop": { "name": "{trigger_name} Stop" },
-      "disconnect": { "name": "Disconnect" },
-      "search_up": { "name": "Station search +" },
-      "search_down": { "name": "Station search -" },
-      "band_switch": { "name": "Switch DAB/FM" },
-      "preset": { "name": "Preset {preset}" },
-      "go_to_start": { "name": "Go to start" },
-      "fast_forward": { "name": "Fast forward" },
-      "fast_rewind": { "name": "Rewind" },
-      "rec_start": { "name": "Start recording" },
-      "rec_stop": { "name": "Stop recording" },
-      "rec_pause": { "name": "Pause recording" },
-      "rec_cancel": { "name": "Cancel recording" },
-      "random_on": { "name": "Random on" },
-      "random_off": { "name": "Random off" },
-      "repeat_one": { "name": "Repeat: track" },
-      "repeat_all": { "name": "Repeat: all" },
-      "repeat_folder": { "name": "Repeat: folder" },
-      "repeat_off": { "name": "Repeat: off" },
-      "save_settings": { "name": "Save settings" },
-      "zone_volume_up": { "name": "{zone_name} Volume up" },
-      "zone_volume_down": { "name": "{zone_name} Volume down" }
+      "fmp40_trigger_stop": {
+        "name": "{trigger_name} Stop"
+      },
+      "disconnect": {
+        "name": "Disconnect"
+      },
+      "search_up": {
+        "name": "Station search +"
+      },
+      "search_down": {
+        "name": "Station search -"
+      },
+      "band_switch": {
+        "name": "Switch DAB/FM"
+      },
+      "preset": {
+        "name": "Preset {preset}"
+      },
+      "go_to_start": {
+        "name": "Go to start"
+      },
+      "fast_forward": {
+        "name": "Fast forward"
+      },
+      "fast_rewind": {
+        "name": "Rewind"
+      },
+      "rec_start": {
+        "name": "Start recording"
+      },
+      "rec_stop": {
+        "name": "Stop recording"
+      },
+      "rec_pause": {
+        "name": "Pause recording"
+      },
+      "rec_cancel": {
+        "name": "Cancel recording"
+      },
+      "random_on": {
+        "name": "Random on"
+      },
+      "random_off": {
+        "name": "Random off"
+      },
+      "repeat_one": {
+        "name": "Repeat: track"
+      },
+      "repeat_all": {
+        "name": "Repeat: all"
+      },
+      "repeat_folder": {
+        "name": "Repeat: folder"
+      },
+      "repeat_off": {
+        "name": "Repeat: off"
+      },
+      "save_settings": {
+        "name": "Save settings"
+      },
+      "zone_volume_up": {
+        "name": "{zone_name} Volume up"
+      },
+      "zone_volume_down": {
+        "name": "{zone_name} Volume down"
+      }
     },
     "number": {
-      "zone_volume": { "name": "{zone_name} Volume" }
+      "zone_volume": {
+        "name": "{zone_name} Volume"
+      }
     },
     "select": {
-      "zone_source": { "name": "{zone_name} Source" }
+      "zone_source": {
+        "name": "{zone_name} Source"
+      }
     },
     "sensor": {
-      "zone_active_source": { "name": "{zone_name} Active Source" },
-      "connected_device": { "name": "Connected device" },
-      "pairing_state": { "name": "Pairing state" },
-      "player_name": { "name": "Player name" },
-      "ip_address": { "name": "IP address" },
-      "frequency": { "name": "Frequency" },
-      "program_name": { "name": "Station" },
-      "signal_strength": { "name": "Signal strength" },
-      "band": { "name": "Band" }
+      "zone_active_source": {
+        "name": "{zone_name} Active Source"
+      },
+      "connected_device": {
+        "name": "Connected device"
+      },
+      "pairing_state": {
+        "name": "Pairing state"
+      },
+      "player_name": {
+        "name": "Player name"
+      },
+      "ip_address": {
+        "name": "IP address"
+      },
+      "frequency": {
+        "name": "Frequency"
+      },
+      "program_name": {
+        "name": "Station"
+      },
+      "signal_strength": {
+        "name": "Signal strength"
+      },
+      "band": {
+        "name": "Band"
+      }
     },
     "switch": {
-      "zone_mute": { "name": "{zone_name} Mute" },
-      "pairing": { "name": "Pairing" },
-      "stereo": { "name": "Stereo" },
-      "recorder_mode": { "name": "Recording mode" }
+      "zone_mute": {
+        "name": "{zone_name} Mute"
+      },
+      "pairing": {
+        "name": "Pairing"
+      },
+      "stereo": {
+        "name": "Stereo"
+      },
+      "recorder_mode": {
+        "name": "Recording mode"
+      }
     }
   }
 }

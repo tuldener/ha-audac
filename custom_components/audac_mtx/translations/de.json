@@ -9,6 +9,12 @@
           "port": "Port",
           "model": "Modell",
           "name": "Gerätename"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder Hostname des Audac-Geräts in deinem Netzwerk.",
+          "port": "TCP-Port der Gerätesteuerung (Standard 5001).",
+          "model": "Das Audac-Modell bestimmt die Anzahl der Zonen bzw. Modul-Slots.",
+          "name": "Name des Geräts und seiner Entitäten in Home Assistant."
         }
       }
     },
@@ -89,51 +95,125 @@
   },
   "entity": {
     "button": {
-      "fmp40_trigger_stop": { "name": "{trigger_name} Stop" },
-      "disconnect": { "name": "Trennen" },
-      "search_up": { "name": "Sendersuche +" },
-      "search_down": { "name": "Sendersuche -" },
-      "band_switch": { "name": "DAB/FM Umschalten" },
-      "preset": { "name": "Preset {preset}" },
-      "go_to_start": { "name": "Zum Anfang" },
-      "fast_forward": { "name": "Vorspulen" },
-      "fast_rewind": { "name": "Zurückspulen" },
-      "rec_start": { "name": "Aufnahme starten" },
-      "rec_stop": { "name": "Aufnahme stoppen" },
-      "rec_pause": { "name": "Aufnahme pausieren" },
-      "rec_cancel": { "name": "Aufnahme abbrechen" },
-      "random_on": { "name": "Zufällig An" },
-      "random_off": { "name": "Zufällig Aus" },
-      "repeat_one": { "name": "Wiederholen: Titel" },
-      "repeat_all": { "name": "Wiederholen: Alle" },
-      "repeat_folder": { "name": "Wiederholen: Ordner" },
-      "repeat_off": { "name": "Wiederholen: Aus" },
-      "save_settings": { "name": "Einstellungen speichern" },
-      "zone_volume_up": { "name": "{zone_name} Lauter" },
-      "zone_volume_down": { "name": "{zone_name} Leiser" }
+      "fmp40_trigger_stop": {
+        "name": "{trigger_name} Stop"
+      },
+      "disconnect": {
+        "name": "Trennen"
+      },
+      "search_up": {
+        "name": "Sendersuche +"
+      },
+      "search_down": {
+        "name": "Sendersuche -"
+      },
+      "band_switch": {
+        "name": "DAB/FM Umschalten"
+      },
+      "preset": {
+        "name": "Preset {preset}"
+      },
+      "go_to_start": {
+        "name": "Zum Anfang"
+      },
+      "fast_forward": {
+        "name": "Vorspulen"
+      },
+      "fast_rewind": {
+        "name": "Zurückspulen"
+      },
+      "rec_start": {
+        "name": "Aufnahme starten"
+      },
+      "rec_stop": {
+        "name": "Aufnahme stoppen"
+      },
+      "rec_pause": {
+        "name": "Aufnahme pausieren"
+      },
+      "rec_cancel": {
+        "name": "Aufnahme abbrechen"
+      },
+      "random_on": {
+        "name": "Zufällig An"
+      },
+      "random_off": {
+        "name": "Zufällig Aus"
+      },
+      "repeat_one": {
+        "name": "Wiederholen: Titel"
+      },
+      "repeat_all": {
+        "name": "Wiederholen: Alle"
+      },
+      "repeat_folder": {
+        "name": "Wiederholen: Ordner"
+      },
+      "repeat_off": {
+        "name": "Wiederholen: Aus"
+      },
+      "save_settings": {
+        "name": "Einstellungen speichern"
+      },
+      "zone_volume_up": {
+        "name": "{zone_name} Lauter"
+      },
+      "zone_volume_down": {
+        "name": "{zone_name} Leiser"
+      }
     },
     "number": {
-      "zone_volume": { "name": "{zone_name} Lautstärke" }
+      "zone_volume": {
+        "name": "{zone_name} Lautstärke"
+      }
     },
     "select": {
-      "zone_source": { "name": "{zone_name} Quelle" }
+      "zone_source": {
+        "name": "{zone_name} Quelle"
+      }
     },
     "sensor": {
-      "zone_active_source": { "name": "{zone_name} Aktive Quelle" },
-      "connected_device": { "name": "Verbundenes Gerät" },
-      "pairing_state": { "name": "Pairing Status" },
-      "player_name": { "name": "Player Name" },
-      "ip_address": { "name": "IP-Adresse" },
-      "frequency": { "name": "Frequenz" },
-      "program_name": { "name": "Sender" },
-      "signal_strength": { "name": "Signalstärke" },
-      "band": { "name": "Band" }
+      "zone_active_source": {
+        "name": "{zone_name} Aktive Quelle"
+      },
+      "connected_device": {
+        "name": "Verbundenes Gerät"
+      },
+      "pairing_state": {
+        "name": "Pairing Status"
+      },
+      "player_name": {
+        "name": "Player Name"
+      },
+      "ip_address": {
+        "name": "IP-Adresse"
+      },
+      "frequency": {
+        "name": "Frequenz"
+      },
+      "program_name": {
+        "name": "Sender"
+      },
+      "signal_strength": {
+        "name": "Signalstärke"
+      },
+      "band": {
+        "name": "Band"
+      }
     },
     "switch": {
-      "zone_mute": { "name": "{zone_name} Stumm" },
-      "pairing": { "name": "Pairing" },
-      "stereo": { "name": "Stereo" },
-      "recorder_mode": { "name": "Aufnahme-Modus" }
+      "zone_mute": {
+        "name": "{zone_name} Stumm"
+      },
+      "pairing": {
+        "name": "Pairing"
+      },
+      "stereo": {
+        "name": "Stereo"
+      },
+      "recorder_mode": {
+        "name": "Aufnahme-Modus"
+      }
     }
   }
 }

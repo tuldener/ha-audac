@@ -2,7 +2,7 @@
 
 [![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-3.19.2-green.svg?style=flat-square)](https://github.com/FX6W9WZK/ha-audac/releases/latest)
+[![Version](https://img.shields.io/badge/Version-3.20.0-green.svg?style=flat-square)](https://github.com/FX6W9WZK/ha-audac/releases/latest)
 [![Built with Claude AI](https://img.shields.io/badge/Built%20with-Claude%20AI-c4956b.svg?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2Ij48cGF0aCBkPSJNMTcyLjEgNjUuOEwxMDQuMiAxOTAuMiA4My44IDE4My4xbDY3LjktMTI0LjQgMjAuNCAxMi4xek0xNTYuNSAxNzIuMWwtNTEuOC0yMi42IDguNS0xOS41IDUxLjggMjIuNi04LjUgMTkuNXoiIGZpbGw9IiNjNDk1NmIiLz48L3N2Zz4=)](https://www.anthropic.com/claude)
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=FX6W9WZK&repository=ha-audac&category=integration)
@@ -121,6 +121,15 @@ The XMP44 card automatically detects all configured modules and shows per slot:
 - Song info, frequency, signal strength, output gain
 
 ---
+
+## Removing the integration
+
+1. Go to **Settings → Devices & Services → Audac**
+2. Open the three-dot menu of the config entry and choose **Delete**
+3. Restart Home Assistant
+
+All devices and entities created by the integration are removed automatically. To also remove the files, uninstall the integration in HACS afterwards.
+
 
 ## Services
 
