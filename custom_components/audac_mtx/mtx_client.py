@@ -112,7 +112,14 @@ class MTXClient(AudacClient):
             await asyncio.sleep(INTER_COMMAND_DELAY)
 
         if failed_zones:
-            _LOGGER.warning(
+            # A single-zone read glitch is expected occasionally over TCP and is
+            # handled by keeping the previous state — that's the whole point of
+            # this mechanism, not a fault. Only escalate to WARNING when a large
+            # share of zones failed in the same poll, which hints at a device-
+            # or link-wide problem.
+            share_failed = len(failed_zones) / zones_count
+            log_fn = _LOGGER.warning if share_failed >= 0.5 else _LOGGER.debug
+            log_fn(
                 "MTX: %d/%d zones returned no data, kept previous state: %s",
                 len(failed_zones), zones_count, failed_zones,
             )

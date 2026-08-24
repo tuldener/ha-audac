@@ -22,14 +22,15 @@ _LOGGER = logging.getLogger(__name__)
 
 MAX_RETRIES = 1
 RECONNECT_DELAY = 1.0
-RECONNECT_MAX_DELAY = 30.0
+RECONNECT_MAX_DELAY = 5.0
 INTER_COMMAND_DELAY = 0.15
 
 # Hard timeout for a single send-and-receive cycle (seconds).
-# This covers: lock acquisition + connect + send + read + 1 retry.
-# Must be larger than the longest inner read timeout (5s for GFAV)
-# plus overhead for connect/lock. 8s gives 3s margin.
-COMMAND_TIMEOUT = 8.0
+# Must exceed RECONNECT_MAX_DELAY (5s) + connect timeout (3s) so a command
+# can always finish its backoff-sleep and reach a real connect attempt —
+# otherwise the counter ratchets, the delay stays pinned at the max, and
+# every subsequent command dies in the sleep before ever retrying.
+COMMAND_TIMEOUT = 10.0
 
 
 class AudacClient:
@@ -46,6 +47,7 @@ class AudacClient:
         self._writer: asyncio.StreamWriter | None = None
         self._lock = asyncio.Lock()
         self._consecutive_failures = 0
+        self._in_backoff_sleep = False
 
     @property
     def host(self) -> str:
@@ -96,7 +98,11 @@ class AudacClient:
                     RECONNECT_DELAY * (2 ** (self._consecutive_failures - 1)),
                     RECONNECT_MAX_DELAY,
                 )
-                await asyncio.sleep(delay)
+                self._in_backoff_sleep = True
+                try:
+                    await asyncio.sleep(delay)
+                finally:
+                    self._in_backoff_sleep = False
             await self.connect()
 
     async def _flush_buffer(self) -> None:
@@ -236,7 +242,11 @@ class AudacClient:
                 self._writer.close()
             self._writer = None
             self._reader = None
-            self._consecutive_failures += 1
+            # A timeout during the backoff-sleep means we never reached a real
+            # connect attempt — don't ratchet the counter, or the backoff will
+            # stay pinned at the max and every future command dies in the sleep.
+            if not self._in_backoff_sleep:
+                self._consecutive_failures += 1
             raise ConnectionError(f"Command {command} timed out") from None
 
     @staticmethod

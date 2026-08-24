@@ -14,6 +14,7 @@
   "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/FX6W9WZK/ha-audac/issues",
+  "quality_scale": "bronze",
   "requirements": [],
-  "version": "3.19.0"
+  "version": "3.19.1"
 }

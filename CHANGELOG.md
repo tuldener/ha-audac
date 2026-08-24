@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.19.1
+- **Fix: recovery deadlock — volume control stops working until HA restart**
+  - Root cause: `RECONNECT_MAX_DELAY` (30s) exceeded `COMMAND_TIMEOUT` (8s). After ~4 consecutive failures, every command timed out during the backoff sleep before ever reaching `connect()`. Each timeout ratcheted the failure counter, so the delay stayed pinned at 30s indefinitely — only an HA restart cleared the client state.
+  - `RECONNECT_MAX_DELAY`: 30s → 5s (fits inside the command budget)
+  - `COMMAND_TIMEOUT`: 8s → 10s (small safety margin)
+  - Failure counter no longer incremented when the timeout hit during the backoff sleep itself (double guard against the ratcheting loop)
+- **Less log noise** — "N/M zones returned no data" now logs at DEBUG for single-zone glitches (the mechanism keeps previous state, that's the design); escalates to WARNING only when ≥50% of zones failed in one poll, which signals a real device- or link-wide problem
+- **Manifest**: declare `quality_scale: bronze`
+
 ## 3.15.2
 - **Fix: all buttons always available** — buttons are fire-and-forget commands, they don't depend on coordinator state
 - New `AudacButtonBase` class with `available = True` — all 13 button classes inherit from it
