@@ -22,14 +22,13 @@ _LOGGER = logging.getLogger(__name__)
 
 MAX_RETRIES = 1
 RECONNECT_DELAY = 1.0
-RECONNECT_MAX_DELAY = 30.0
+RECONNECT_MAX_DELAY = 5.0
 INTER_COMMAND_DELAY = 0.15
 
 # Hard timeout for a single send-and-receive cycle (seconds).
-# This covers: lock acquisition + connect + send + read + 1 retry.
-# Must be larger than the longest inner read timeout (5s for GFAV)
-# plus overhead for connect/lock. 8s gives 3s margin.
-COMMAND_TIMEOUT = 8.0
+# Must exceed RECONNECT_MAX_DELAY (5s) + connect timeout (3s) so a command
+# can always finish its backoff-sleep and reach a real connect attempt.
+COMMAND_TIMEOUT = 10.0
 
 
 class AudacClient:
@@ -46,6 +45,7 @@ class AudacClient:
         self._writer: asyncio.StreamWriter | None = None
         self._lock = asyncio.Lock()
         self._consecutive_failures = 0
+        self._in_backoff_sleep = False
 
     @property
     def host(self) -> str:
@@ -94,7 +94,11 @@ class AudacClient:
                     RECONNECT_DELAY * (2 ** (self._consecutive_failures - 1)),
                     RECONNECT_MAX_DELAY,
                 )
-                await asyncio.sleep(delay)
+                self._in_backoff_sleep = True
+                try:
+                    await asyncio.sleep(delay)
+                finally:
+                    self._in_backoff_sleep = False
             await self.connect()
 
     async def _flush_buffer(self) -> None:
@@ -226,19 +230,17 @@ class AudacClient:
         try:
             return await asyncio.wait_for(_do(), timeout=COMMAND_TIMEOUT)
         except asyncio.TimeoutError:
-            if self._lock.locked():
-                _LOGGER.warning(
-                    "Audac command %s timed out with lock held — creating new Lock to recover",
-                    command,
-                )
-                self._lock = asyncio.Lock()
             _LOGGER.warning(
                 "Audac command %s timed out after %.0fs — forcing disconnect",
                 command, COMMAND_TIMEOUT,
             )
             self._writer = None
             self._reader = None
-            self._consecutive_failures += 1
+            # Only count as a real failure if we actually tried to talk to the
+            # device. A timeout during the backoff-sleep means the doom-loop
+            # guard already broke us out — don't ratchet the counter further.
+            if not self._in_backoff_sleep:
+                self._consecutive_failures += 1
             raise ConnectionError(f"Command {command} timed out") from None
 
     @staticmethod

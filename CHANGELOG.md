@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.17.0
+- **Fix: recovery deadlock — volume control stops working until HA restart**
+  - Root cause: `RECONNECT_MAX_DELAY` (30s) exceeded `COMMAND_TIMEOUT` (8s), so after ~4 consecutive failures every command timed out during the backoff sleep before ever attempting to reconnect. Each timeout ratcheted the failure counter further, and only a HA restart cleared it.
+  - `RECONNECT_MAX_DELAY`: 30s → 5s (fits inside the command budget)
+  - `COMMAND_TIMEOUT`: 8s → 10s (small safety margin)
+  - Failure counter no longer incremented when the timeout hit during the backoff sleep itself (double-guard against a ratcheting loop)
+- **Fix: race condition on command timeout** — removed the "create new Lock" recovery path. A cancelled command already releases its lock via `__aexit__`; replacing the lock allowed concurrent tasks onto the same TCP connection with a nulled writer/reader, which manifested as spurious per-zone read failures.
+- **Less log noise** — "N/M zones returned no data" only logs at WARNING when ≥50% of zones failed in the same poll; single-zone glitches (the whole point of the keep-previous-state mechanism) now log at DEBUG.
+
 ## 3.16.1
 - **Manifest: declare `quality_scale: bronze`** — verified compatibility with Home Assistant 2026.6.0
 - No functional changes; metadata-only release
