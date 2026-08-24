@@ -98,11 +98,13 @@ class AudacClient:
                     RECONNECT_DELAY * (2 ** (self._consecutive_failures - 1)),
                     RECONNECT_MAX_DELAY,
                 )
+                # No try/finally here on purpose: when the command timeout
+                # cancels this sleep, the flag must stay set so the timeout
+                # handler can see the cancellation happened during backoff
+                # (a finally would reset it before the handler runs).
                 self._in_backoff_sleep = True
-                try:
-                    await asyncio.sleep(delay)
-                finally:
-                    self._in_backoff_sleep = False
+                await asyncio.sleep(delay)
+                self._in_backoff_sleep = False
             await self.connect()
 
     async def _flush_buffer(self) -> None:
@@ -245,7 +247,10 @@ class AudacClient:
             # A timeout during the backoff-sleep means we never reached a real
             # connect attempt — don't ratchet the counter, or the backoff will
             # stay pinned at the max and every future command dies in the sleep.
-            if not self._in_backoff_sleep:
+            # Read-and-reset: the cancelled sleep leaves the flag set.
+            timed_out_in_backoff = self._in_backoff_sleep
+            self._in_backoff_sleep = False
+            if not timed_out_in_backoff:
                 self._consecutive_failures += 1
             raise ConnectionError(f"Command {command} timed out") from None
 
