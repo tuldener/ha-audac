@@ -1,22 +1,21 @@
-node_modules/
-__pycache__/
-*.pyc
-.DS_Store
-.cache/
-.local/
-.agents/
-package-lock.json
 
 # Development only (Replit preview)
-preview/
-server.js
-package.json
-
-# Replit-specific
-replit.md
-.replit
-attached_assets/
-
 # Development source (production card is in custom_components/audac_mtx/www/)
-src/
+# Replit-specific
+*.pyc
+.DS_Store
+.agents/
+.cache/
+.coverage
+.local/
+.replit
+__pycache__/
+attached_assets/
 dist/
+node_modules/
+package-lock.json
+package.json
+preview/
+replit.md
+server.js
+src/
