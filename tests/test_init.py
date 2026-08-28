@@ -199,7 +199,9 @@ async def test_setup_mtx_creates_entities(hass: HomeAssistant) -> None:
 
     # Hub device exists
     dev_reg = dr.async_get(hass)
-    device = dev_reg.async_get_device(identifiers={(DOMAIN, entry.entry_id)})
+    device = dev_reg.async_get_device_by_identifier(
+        (DOMAIN, entry.entry_id), entry.entry_id
+    )
     assert device is not None
     assert device.manufacturer == "Audac"
     assert device.model == "MTX88"
@@ -300,12 +302,14 @@ async def test_setup_xmp44_hub_and_slot_devices(hass: HomeAssistant) -> None:
     assert entry.state is ConfigEntryState.LOADED
 
     dev_reg = dr.async_get(hass)
-    hub = dev_reg.async_get_device(identifiers={(DOMAIN, entry.entry_id)})
+    hub = dev_reg.async_get_device_by_identifier(
+        (DOMAIN, entry.entry_id), entry.entry_id
+    )
     assert hub is not None
     assert hub.model == "XMP44"
 
-    slot_dev = dev_reg.async_get_device(
-        identifiers={(DOMAIN, f"{entry.entry_id}_slot_1")}
+    slot_dev = dev_reg.async_get_device_by_identifier(
+        (DOMAIN, f"{entry.entry_id}_slot_1"), entry.entry_id
     )
     assert slot_dev is not None
     assert slot_dev.via_device_id == hub.id
